@@ -1,5 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createDatabaseIfNotExists, ensureTablesExist, migrateProductsFromList } from '../../lib/db';
+import { 
+  createDatabaseIfNotExists, 
+  ensureTablesExist, 
+  migrateProductsFromList,
+  insertDefaultStoreConfig,
+  createDefaultAdmin
+} from '../../lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -7,22 +13,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('🚀 Iniciando configuração do banco de dados...');
+    console.log('🚀 Iniciando configuração completa do banco de dados...');
     
     // 1. Criar database se não existir
+    console.log('📊 Criando/verificando database...');
     await createDatabaseIfNotExists();
     
     // 2. Criar tabelas se não existirem
+    console.log('🏗️ Criando/verificando tabelas...');
     await ensureTablesExist();
     
     // 3. Migrar produtos do listaItems se necessário
+    console.log('📦 Migrando produtos do listaItems...');
     await migrateProductsFromList();
     
-    console.log('✅ Banco de dados configurado com sucesso!');
+    // 4. Inserir configurações padrão da loja
+    console.log('⚙️ Inserindo configurações padrão...');
+    await insertDefaultStoreConfig();
+    
+    // 5. Criar usuário admin padrão
+    console.log('👤 Criando usuário admin padrão...');
+    await createDefaultAdmin();
+    
+    console.log('✅ Banco de dados configurado completamente com sucesso!');
     
     return res.status(200).json({ 
       success: true, 
-      message: 'Banco de dados inicializado com sucesso' 
+      message: 'Banco de dados inicializado com sucesso',
+      details: {
+        database: 'Criado/verificado',
+        tables: 'Criadas/verificadas',
+        products: 'Migrados do listaItems',
+        storeConfig: 'Configurações padrão inseridas',
+        adminUser: 'Usuário admin criado (admin/admin123)'
+      }
     });
   } catch (error) {
     console.error('❌ Erro ao inicializar banco de dados:', error);

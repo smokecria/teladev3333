@@ -20,15 +20,16 @@ interface StoreConfig {
     whatsapp: string;
     email: string;
   };
-  pixConfig: {
-    clientId: string;
-    clientSecret: string;
-    isActive: boolean;
-  };
+}
+
+interface PixConfig {
+  clientId: string;
+  clientSecret: string;
+  isActive: boolean;
 }
 
 export default function StoreConfig() {
-  const [config, setConfig] = useState<StoreConfig>({
+  const [storeConfig, setStoreConfig] = useState<StoreConfig>({
     storeName: 'PC Shop',
     storeAddress: {
       street: 'Rua xxxxxxxxxx',
@@ -46,50 +47,105 @@ export default function StoreConfig() {
     contact: {
       whatsapp: '',
       email: ''
-    },
-    pixConfig: {
-      clientId: '',
-      clientSecret: '',
-      isActive: false
     }
   });
+
+  const [pixConfig, setPixConfig] = useState<PixConfig>({
+    clientId: '',
+    clientSecret: '',
+    isActive: false
+  });
+
   const [isEditing, setIsEditing] = useState(false);
   const [activeSection, setActiveSection] = useState('store');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadConfig();
+    loadConfigs();
   }, []);
 
-  const loadConfig = () => {
-    const savedConfig = localStorage.getItem('storeConfig');
-    if (savedConfig) {
-      setConfig(JSON.parse(savedConfig));
-    }
-    
-    // Load PIX config separately for backward compatibility
-    const pixConfig = localStorage.getItem('pixConfig');
-    if (pixConfig) {
-      const parsedPixConfig = JSON.parse(pixConfig);
-      setConfig(prev => ({
-        ...prev,
-        pixConfig: parsedPixConfig
-      }));
+  const loadConfigs = async () => {
+    try {
+      setLoading(true);
+      
+      // Tenta carregar do banco de dados
+      const response = await fetch('/api/store-config');
+      if (response.ok) {
+        const configs = await response.json();
+        
+        if (configs.store_info) {
+          setStoreConfig(configs.store_info);
+        }
+        
+        if (configs.pix_config) {
+          setPixConfig(configs.pix_config);
+        }
+      } else {
+        // Fallback para localStorage
+        const savedStoreConfig = localStorage.getItem('storeConfig');
+        if (savedStoreConfig) {
+          setStoreConfig(JSON.parse(savedStoreConfig));
+        }
+        
+        const savedPixConfig = localStorage.getItem('pixConfig');
+        if (savedPixConfig) {
+          setPixConfig(JSON.parse(savedPixConfig));
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+      
+      // Fallback para localStorage
+      const savedStoreConfig = localStorage.getItem('storeConfig');
+      if (savedStoreConfig) {
+        setStoreConfig(JSON.parse(savedStoreConfig));
+      }
+      
+      const savedPixConfig = localStorage.getItem('pixConfig');
+      if (savedPixConfig) {
+        setPixConfig(JSON.parse(savedPixConfig));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('storeConfig', JSON.stringify(config));
     
-    // Save PIX config separately for backward compatibility
-    localStorage.setItem('pixConfig', JSON.stringify(config.pixConfig));
+    try {
+      // Salva no banco de dados
+      const storeResponse = await fetch('/api/store-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'store_info', value: storeConfig })
+      });
+
+      const pixResponse = await fetch('/api/store-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'pix_config', value: pixConfig })
+      });
+
+      if (storeResponse.ok && pixResponse.ok) {
+        alert('Configurações salvas com sucesso!');
+      } else {
+        throw new Error('Erro ao salvar no banco de dados');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      
+      // Fallback para localStorage
+      localStorage.setItem('storeConfig', JSON.stringify(storeConfig));
+      localStorage.setItem('pixConfig', JSON.stringify(pixConfig));
+      alert('Configurações salvas localmente!');
+    }
     
     setIsEditing(false);
-    alert('Configurações salvas com sucesso!');
   };
 
-  const handleInputChange = (section: string, field: string, value: string) => {
-    setConfig(prev => ({
+  const handleStoreInputChange = (section: string, field: string, value: string) => {
+    setStoreConfig(prev => ({
       ...prev,
       [section]: {
         ...prev[section as keyof StoreConfig],
@@ -98,14 +154,21 @@ export default function StoreConfig() {
     }));
   };
 
+  const handlePixInputChange = (field: string, value: string | boolean) => {
+    setPixConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handlePixTest = async () => {
-    if (!config.pixConfig.clientId || !config.pixConfig.clientSecret) {
+    if (!pixConfig.clientId || !pixConfig.clientSecret) {
       alert('Configure o Client ID e Client Secret primeiro!');
       return;
     }
 
     try {
-      const credentials = `${config.pixConfig.clientId}:${config.pixConfig.clientSecret}`;
+      const credentials = `${pixConfig.clientId}:${pixConfig.clientSecret}`;
       const base64Credentials = btoa(credentials);
       
       const response = await fetch('https://api.pixupbr.com/v2/oauth/token', {
@@ -125,6 +188,17 @@ export default function StoreConfig() {
       alert('Erro ao testar conexão: ' + error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className={styles.storeConfig}>
+        <h2>Configurações da Loja</h2>
+        <div className="text-center py-8">
+          <p>Carregando configurações...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.storeConfig}>
@@ -166,8 +240,8 @@ export default function StoreConfig() {
                   <label>Nome da Loja:</label>
                   <input
                     type="text"
-                    value={config.storeName}
-                    onChange={(e) => setConfig({...config, storeName: e.target.value})}
+                    value={storeConfig.storeName}
+                    onChange={(e) => setStoreConfig({...storeConfig, storeName: e.target.value})}
                     required
                   />
                 </div>
@@ -178,8 +252,8 @@ export default function StoreConfig() {
                     <label>Rua:</label>
                     <input
                       type="text"
-                      value={config.storeAddress.street}
-                      onChange={(e) => handleInputChange('storeAddress', 'street', e.target.value)}
+                      value={storeConfig.storeAddress.street}
+                      onChange={(e) => handleStoreInputChange('storeAddress', 'street', e.target.value)}
                       required
                     />
                   </div>
@@ -187,8 +261,8 @@ export default function StoreConfig() {
                     <label>Número:</label>
                     <input
                       type="text"
-                      value={config.storeAddress.number}
-                      onChange={(e) => handleInputChange('storeAddress', 'number', e.target.value)}
+                      value={storeConfig.storeAddress.number}
+                      onChange={(e) => handleStoreInputChange('storeAddress', 'number', e.target.value)}
                       required
                     />
                   </div>
@@ -199,8 +273,8 @@ export default function StoreConfig() {
                     <label>Bairro:</label>
                     <input
                       type="text"
-                      value={config.storeAddress.neighborhood}
-                      onChange={(e) => handleInputChange('storeAddress', 'neighborhood', e.target.value)}
+                      value={storeConfig.storeAddress.neighborhood}
+                      onChange={(e) => handleStoreInputChange('storeAddress', 'neighborhood', e.target.value)}
                       required
                     />
                   </div>
@@ -208,8 +282,8 @@ export default function StoreConfig() {
                     <label>Cidade:</label>
                     <input
                       type="text"
-                      value={config.storeAddress.city}
-                      onChange={(e) => handleInputChange('storeAddress', 'city', e.target.value)}
+                      value={storeConfig.storeAddress.city}
+                      onChange={(e) => handleStoreInputChange('storeAddress', 'city', e.target.value)}
                       required
                     />
                   </div>
@@ -220,8 +294,8 @@ export default function StoreConfig() {
                     <label>Estado:</label>
                     <input
                       type="text"
-                      value={config.storeAddress.state}
-                      onChange={(e) => handleInputChange('storeAddress', 'state', e.target.value)}
+                      value={storeConfig.storeAddress.state}
+                      onChange={(e) => handleStoreInputChange('storeAddress', 'state', e.target.value)}
                       maxLength={2}
                       required
                     />
@@ -230,8 +304,8 @@ export default function StoreConfig() {
                     <label>CEP:</label>
                     <input
                       type="text"
-                      value={config.storeAddress.zipCode}
-                      onChange={(e) => handleInputChange('storeAddress', 'zipCode', e.target.value)}
+                      value={storeConfig.storeAddress.zipCode}
+                      onChange={(e) => handleStoreInputChange('storeAddress', 'zipCode', e.target.value)}
                       required
                     />
                   </div>
@@ -242,8 +316,8 @@ export default function StoreConfig() {
                   <label>Segunda à Sexta:</label>
                   <input
                     type="text"
-                    value={config.workingHours.weekdays}
-                    onChange={(e) => handleInputChange('workingHours', 'weekdays', e.target.value)}
+                    value={storeConfig.workingHours.weekdays}
+                    onChange={(e) => handleStoreInputChange('workingHours', 'weekdays', e.target.value)}
                     required
                   />
                 </div>
@@ -252,8 +326,8 @@ export default function StoreConfig() {
                   <label>Sábado:</label>
                   <input
                     type="text"
-                    value={config.workingHours.saturday}
-                    onChange={(e) => handleInputChange('workingHours', 'saturday', e.target.value)}
+                    value={storeConfig.workingHours.saturday}
+                    onChange={(e) => handleStoreInputChange('workingHours', 'saturday', e.target.value)}
                     required
                   />
                 </div>
@@ -262,8 +336,8 @@ export default function StoreConfig() {
                   <label>Domingo:</label>
                   <input
                     type="text"
-                    value={config.workingHours.sunday}
-                    onChange={(e) => handleInputChange('workingHours', 'sunday', e.target.value)}
+                    value={storeConfig.workingHours.sunday}
+                    onChange={(e) => handleStoreInputChange('workingHours', 'sunday', e.target.value)}
                     required
                   />
                 </div>
@@ -273,8 +347,8 @@ export default function StoreConfig() {
                   <label>WhatsApp:</label>
                   <input
                     type="text"
-                    value={config.contact.whatsapp}
-                    onChange={(e) => handleInputChange('contact', 'whatsapp', e.target.value)}
+                    value={storeConfig.contact.whatsapp}
+                    onChange={(e) => handleStoreInputChange('contact', 'whatsapp', e.target.value)}
                     placeholder="(11) 99999-9999"
                   />
                 </div>
@@ -283,8 +357,8 @@ export default function StoreConfig() {
                   <label>Email:</label>
                   <input
                     type="email"
-                    value={config.contact.email}
-                    onChange={(e) => handleInputChange('contact', 'email', e.target.value)}
+                    value={storeConfig.contact.email}
+                    onChange={(e) => handleStoreInputChange('contact', 'email', e.target.value)}
                     placeholder="contato@loja.com"
                   />
                 </div>
@@ -297,8 +371,8 @@ export default function StoreConfig() {
                   <label>Client ID:</label>
                   <input
                     type="text"
-                    value={config.pixConfig.clientId}
-                    onChange={(e) => handleInputChange('pixConfig', 'clientId', e.target.value)}
+                    value={pixConfig.clientId}
+                    onChange={(e) => handlePixInputChange('clientId', e.target.value)}
                     placeholder="Digite o Client ID"
                     required
                   />
@@ -308,8 +382,8 @@ export default function StoreConfig() {
                   <label>Client Secret:</label>
                   <input
                     type="password"
-                    value={config.pixConfig.clientSecret}
-                    onChange={(e) => handleInputChange('pixConfig', 'clientSecret', e.target.value)}
+                    value={pixConfig.clientSecret}
+                    onChange={(e) => handlePixInputChange('clientSecret', e.target.value)}
                     placeholder="Digite o Client Secret"
                     required
                   />
@@ -319,8 +393,8 @@ export default function StoreConfig() {
                   <label>
                     <input
                       type="checkbox"
-                      checked={config.pixConfig.isActive}
-                      onChange={(e) => handleInputChange('pixConfig', 'isActive', e.target.checked.toString())}
+                      checked={pixConfig.isActive}
+                      onChange={(e) => handlePixInputChange('isActive', e.target.checked)}
                     />
                     Ativar PIX como método de pagamento
                   </label>
@@ -345,35 +419,35 @@ export default function StoreConfig() {
               <>
                 <div className={styles.configSection}>
                   <h4>Informações Básicas</h4>
-                  <p><strong>Nome da Loja:</strong> {config.storeName}</p>
-                  <p><strong>WhatsApp:</strong> {config.contact.whatsapp || 'Não configurado'}</p>
-                  <p><strong>Email:</strong> {config.contact.email || 'Não configurado'}</p>
+                  <p><strong>Nome da Loja:</strong> {storeConfig.storeName}</p>
+                  <p><strong>WhatsApp:</strong> {storeConfig.contact.whatsapp || 'Não configurado'}</p>
+                  <p><strong>Email:</strong> {storeConfig.contact.email || 'Não configurado'}</p>
                 </div>
 
                 <div className={styles.configSection}>
                   <h4>Endereço</h4>
-                  <p>{config.storeAddress.street}, {config.storeAddress.number}</p>
-                  <p>{config.storeAddress.neighborhood}</p>
-                  <p>{config.storeAddress.city} - {config.storeAddress.state}</p>
-                  <p>CEP: {config.storeAddress.zipCode}</p>
+                  <p>{storeConfig.storeAddress.street}, {storeConfig.storeAddress.number}</p>
+                  <p>{storeConfig.storeAddress.neighborhood}</p>
+                  <p>{storeConfig.storeAddress.city} - {storeConfig.storeAddress.state}</p>
+                  <p>CEP: {storeConfig.storeAddress.zipCode}</p>
                 </div>
 
                 <div className={styles.configSection}>
                   <h4>Horário de Funcionamento</h4>
-                  <p><strong>Segunda à Sexta:</strong> {config.workingHours.weekdays}</p>
-                  <p><strong>Sábado:</strong> {config.workingHours.saturday}</p>
-                  <p><strong>Domingo:</strong> {config.workingHours.sunday}</p>
+                  <p><strong>Segunda à Sexta:</strong> {storeConfig.workingHours.weekdays}</p>
+                  <p><strong>Sábado:</strong> {storeConfig.workingHours.saturday}</p>
+                  <p><strong>Domingo:</strong> {storeConfig.workingHours.sunday}</p>
                 </div>
               </>
             )}
 
             {activeSection === 'pix' && (
               <>
-                <p><strong>Client ID:</strong> {config.pixConfig.clientId || 'Não configurado'}</p>
-                <p><strong>Client Secret:</strong> {config.pixConfig.clientSecret ? '••••••••••••' : 'Não configurado'}</p>
+                <p><strong>Client ID:</strong> {pixConfig.clientId || 'Não configurado'}</p>
+                <p><strong>Client Secret:</strong> {pixConfig.clientSecret ? '••••••••••••' : 'Não configurado'}</p>
                 <p><strong>Status:</strong> 
-                  <span className={config.pixConfig.isActive ? styles.active : styles.inactive}>
-                    {config.pixConfig.isActive ? 'Ativo' : 'Inativo'}
+                  <span className={pixConfig.isActive ? styles.active : styles.inactive}>
+                    {pixConfig.isActive ? 'Ativo' : 'Inativo'}
                   </span>
                 </p>
               </>

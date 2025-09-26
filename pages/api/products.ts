@@ -12,7 +12,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const [rows] = await connection.execute(`
             SELECT 
               id, name, modelo, categoria, fabricante, price, img, img2, 
-              garantia, specs, promo, pathName, tags, destaque 
+              garantia, specs, promo, pathName, tags, destaque,
+              created_at, updated_at
             FROM products 
             ORDER BY created_at DESC
           `);
@@ -20,8 +21,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const products = (rows as any[]).map(row => ({
             ...row,
             pPrazo: row.price, // Manter compatibilidade com o código existente
-            specs: row.specs ? JSON.parse(row.specs) : [],
-            tags: row.tags ? JSON.parse(row.tags) : []
+            specs: row.specs ? (typeof row.specs === 'string' ? JSON.parse(row.specs) : row.specs) : [],
+            tags: row.tags ? (typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags) : []
           }));
 
           await connection.end();
@@ -39,15 +40,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             garantia, specs, promo, pathName, tags, destaque
           } = req.body;
 
-          if (!name || !modelo || !price) {
+          if (!name || !modelo || !price || !categoria) {
             await connection.end();
-            return res.status(400).json({ error: 'Campos obrigatórios: name, modelo, price' });
+            return res.status(400).json({ error: 'Campos obrigatórios: name, modelo, categoria, price' });
           }
 
           const id = uuidv4();
           const generatedPathName = pathName || name.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove acentos
             .replace(/[^a-z0-9\s]/g, '')
-            .replace(/\s+/g, '-');
+            .replace(/\s+/g, '-')
+            .substring(0, 100); // Limita o tamanho
 
           await connection.execute(`
             INSERT INTO products (
@@ -55,14 +59,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               garantia, specs, promo, pathName, tags, destaque
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
-            id, name, modelo, categoria, fabricante, price, img, img2,
-            garantia, JSON.stringify(specs || []), promo || false,
+            id, name, modelo, categoria, fabricante, price, img || '', img2 || '',
+            garantia || '', JSON.stringify(specs || []), promo || false,
             generatedPathName, JSON.stringify(tags || []), destaque || false
           ]);
 
           const newProduct = {
-            id, name, modelo, categoria, fabricante, price, img, img2,
-            garantia, specs: specs || [], promo: promo || false,
+            id, name, modelo, categoria, fabricante, price, img: img || '', img2: img2 || '',
+            garantia: garantia || '', specs: specs || [], promo: promo || false,
             pathName: generatedPathName, tags: tags || [], destaque: destaque || false,
             pPrazo: price
           };
@@ -82,9 +86,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             garantia, specs, promo, pathName, tags, destaque
           } = req.body;
 
-          if (!id || !name || !modelo || !price) {
+          if (!id || !name || !modelo || !price || !categoria) {
             await connection.end();
-            return res.status(400).json({ error: 'Campos obrigatórios: id, name, modelo, price' });
+            return res.status(400).json({ error: 'Campos obrigatórios: id, name, modelo, categoria, price' });
           }
 
           await connection.execute(`
@@ -94,16 +98,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               pathName = ?, tags = ?, destaque = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
           `, [
-            name, modelo, categoria, fabricante, price, img, img2,
-            garantia, JSON.stringify(specs || []), promo || false,
+            name, modelo, categoria, fabricante || '', price, img || '', img2 || '',
+            garantia || '', JSON.stringify(specs || []), promo || false,
             pathName, JSON.stringify(tags || []), destaque || false, id
           ]);
 
           const updatedProduct = {
-            id, name, modelo, categoria, fabricante, price, img, img2,
-            garantia, specs: specs || [], promo: promo || false,
-            pathName, tags: tags || [], destaque: destaque || false,
-            pPrazo: price
+            id, name, modelo, categoria, fabricante: fabricante || '', price, 
+            img: img || '', img2: img2 || '', garantia: garantia || '', 
+            specs: specs || [], promo: promo || false, pathName, 
+            tags: tags || [], destaque: destaque || false, pPrazo: price
           };
 
           await connection.end();
@@ -123,7 +127,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'ID do produto é obrigatório' });
           }
 
-          await connection.execute('DELETE FROM products WHERE id = ?', [id]);
+          const [result] = await connection.execute('DELETE FROM products WHERE id = ?', [id]);
+          
+          if ((result as any).affectedRows === 0) {
+            await connection.end();
+            return res.status(404).json({ error: 'Produto não encontrado' });
+          }
+
           await connection.end();
           return res.status(200).json({ message: 'Produto deletado com sucesso' });
         } catch (error) {

@@ -63,7 +63,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePaymentComplete = (paymentData: any) => {
+  const handlePaymentComplete = async (paymentData: any) => {
     // Create order
     const order = {
       id: uuidv4(),
@@ -92,10 +92,25 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString()
     };
 
-    // Save order
-    const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    existingOrders.push(order);
-    localStorage.setItem('orders', JSON.stringify(existingOrders));
+    try {
+      // Tenta salvar no banco de dados
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar pedido no banco');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar no banco, salvando no localStorage:', error);
+      
+      // Fallback para localStorage
+      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      existingOrders.push(order);
+      localStorage.setItem('orders', JSON.stringify(existingOrders));
+    }
 
     // Clear cart
     dispatch(cleanCart());
@@ -174,6 +189,80 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              <div className={styles.formGroup}>
+                <label>CEP</label>
+                <input
+                  type="text"
+                  value={customerData.cep}
+                  onChange={(e) => {
+                    const formatted = e.target.value.replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2');
+                    setCustomerData({...customerData, cep: formatted});
+                    handleCepChange(formatted);
+                  }}
+                  placeholder="00000-000"
+                  maxLength={9}
+                  required
+                />
+              </div>
+
+              {addressData && (
+                <>
+                  <div className={styles.formGroup}>
+                    <label>Endereço</label>
+                    <input
+                      type="text"
+                      value={customerData.address}
+                      onChange={(e) => setCustomerData({...customerData, address: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Número</label>
+                    <input
+                      type="text"
+                      value={customerData.number}
+                      onChange={(e) => setCustomerData({...customerData, number: e.target.value})}
+                      placeholder="123"
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Bairro</label>
+                    <input
+                      type="text"
+                      value={customerData.neighborhood}
+                      onChange={(e) => setCustomerData({...customerData, neighborhood: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label>Cidade</label>
+                      <input
+                        type="text"
+                        value={customerData.city}
+                        onChange={(e) => setCustomerData({...customerData, city: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label>Estado</label>
+                      <input
+                        type="text"
+                        value={customerData.state}
+                        onChange={(e) => setCustomerData({...customerData, state: e.target.value})}
+                        maxLength={2}
+                        required
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               <button type="submit" className={styles.nextBtn}>
                 Continuar para Pagamento
               </button>
@@ -199,79 +288,6 @@ export default function CheckoutPage() {
               })}</span>
             </div>
           ))}
-            <div className={styles.formGroup}>
-              <label>CEP</label>
-              <input
-                type="text"
-                value={customerData.cep}
-                onChange={(e) => {
-                  const formatted = e.target.value.replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2');
-                  setCustomerData({...customerData, cep: formatted});
-                  handleCepChange(formatted);
-                }}
-                placeholder="00000-000"
-                maxLength={9}
-                required
-              />
-            </div>
-
-            {addressData && (
-              <>
-                <div className={styles.formGroup}>
-                  <label>Endereço</label>
-                  <input
-                    type="text"
-                    value={customerData.address}
-                    onChange={(e) => setCustomerData({...customerData, address: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>Número</label>
-                  <input
-                    type="text"
-                    value={customerData.number}
-                    onChange={(e) => setCustomerData({...customerData, number: e.target.value})}
-                    placeholder="123"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>Bairro</label>
-                  <input
-                    type="text"
-                    value={customerData.neighborhood}
-                    onChange={(e) => setCustomerData({...customerData, neighborhood: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div className={styles.formRow}>
-                  <div className={styles.formGroup}>
-                    <label>Cidade</label>
-                    <input
-                      type="text"
-                      value={customerData.city}
-                      onChange={(e) => setCustomerData({...customerData, city: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label>Estado</label>
-                    <input
-                      type="text"
-                      value={customerData.state}
-                      onChange={(e) => setCustomerData({...customerData, state: e.target.value})}
-                      maxLength={2}
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            )}
 
           <div className={styles.total}>
             <strong>

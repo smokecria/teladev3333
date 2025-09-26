@@ -27,7 +27,7 @@ export async function createDatabaseIfNotExists() {
       password: process.env.DB_PASSWORD || '',
     });
 
-    await connection.execute(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_DATABASE || 'pcshop'}`);
+    await connection.execute(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_DATABASE || 'pcshop'} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     await connection.end();
     console.log('✅ Database criado/verificado com sucesso');
   } catch (error) {
@@ -59,8 +59,12 @@ export async function ensureTablesExist() {
         tags JSON,
         destaque BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_categoria (categoria),
+        INDEX idx_promo (promo),
+        INDEX idx_destaque (destaque),
+        INDEX idx_pathName (pathName(255))
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Tabela de pedidos
@@ -78,8 +82,10 @@ export async function ensureTablesExist() {
         card_data JSON,
         pix_data JSON,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_payment_status (payment_status),
+        INDEX idx_created_at (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Tabela de configurações da loja
@@ -89,8 +95,40 @@ export async function ensureTablesExist() {
         config_key VARCHAR(255) UNIQUE NOT NULL,
         config_value JSON NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_config_key (config_key)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela de usuários admin
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        last_login TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_username (username)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela de logs do sistema
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS system_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        action VARCHAR(255) NOT NULL,
+        entity_type VARCHAR(100),
+        entity_id VARCHAR(36),
+        user_id INT,
+        details JSON,
+        ip_address VARCHAR(45),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_action (action),
+        INDEX idx_entity (entity_type, entity_id),
+        INDEX idx_created_at (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     await connection.end();
@@ -118,6 +156,8 @@ export async function migrateProductsFromList() {
 
     // Importar produtos do arquivo listaItems
     const itemsList = require('../listaItems').default;
+    
+    console.log(`🔄 Migrando ${itemsList.length} produtos para o banco de dados...`);
     
     for (const item of itemsList) {
       await connection.execute(`
@@ -147,6 +187,103 @@ export async function migrateProductsFromList() {
     console.log(`✅ ${itemsList.length} produtos migrados com sucesso para o banco de dados`);
   } catch (error) {
     console.error('❌ Erro ao migrar produtos:', error);
+    throw error;
+  }
+}
+
+// Função para inserir configurações padrão da loja
+export async function insertDefaultStoreConfig() {
+  try {
+    const connection = await getConnection();
+    
+    // Verificar se já existem configurações
+    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM store_config');
+    const count = (rows as any)[0].count;
+    
+    if (count > 0) {
+      console.log('✅ Configurações da loja já existem');
+      await connection.end();
+      return;
+    }
+
+    // Inserir configurações padrão
+    const defaultConfigs = [
+      {
+        key: 'store_info',
+        value: {
+          storeName: 'PC Shop',
+          storeAddress: {
+            street: 'Rua xxxxxxxxxx',
+            number: '100',
+            neighborhood: 'Bairro xxxxxxx',
+            city: 'São Paulo',
+            state: 'SP',
+            zipCode: '11111-111'
+          },
+          workingHours: {
+            weekdays: 'Segunda à Sexta-feira de 8:00h às 18h',
+            saturday: 'Fechado devido ao Coronavírus (COVID-19)',
+            sunday: 'Fechado'
+          },
+          contact: {
+            whatsapp: '',
+            email: ''
+          }
+        }
+      },
+      {
+        key: 'pix_config',
+        value: {
+          clientId: '',
+          clientSecret: '',
+          isActive: false
+        }
+      }
+    ];
+
+    for (const config of defaultConfigs) {
+      await connection.execute(
+        'INSERT INTO store_config (config_key, config_value) VALUES (?, ?)',
+        [config.key, JSON.stringify(config.value)]
+      );
+    }
+
+    await connection.end();
+    console.log('✅ Configurações padrão da loja inseridas com sucesso');
+  } catch (error) {
+    console.error('❌ Erro ao inserir configurações padrão:', error);
+    throw error;
+  }
+}
+
+// Função para criar usuário admin padrão
+export async function createDefaultAdmin() {
+  try {
+    const connection = await getConnection();
+    
+    // Verificar se já existe um admin
+    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM admin_users');
+    const count = (rows as any)[0].count;
+    
+    if (count > 0) {
+      console.log('✅ Usuário admin já existe');
+      await connection.end();
+      return;
+    }
+
+    // Criar hash simples para a senha (em produção, use bcrypt)
+    const crypto = require('crypto');
+    const passwordHash = crypto.createHash('sha256').update('admin123').digest('hex');
+
+    await connection.execute(
+      'INSERT INTO admin_users (username, password_hash, email) VALUES (?, ?, ?)',
+      ['admin', passwordHash, 'admin@pcshop.com']
+    );
+
+    await connection.end();
+    console.log('✅ Usuário admin padrão criado (username: admin, password: admin123)');
+  } catch (error) {
+    console.error('❌ Erro ao criar usuário admin:', error);
     throw error;
   }
 }
