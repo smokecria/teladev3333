@@ -1,17 +1,32 @@
-import { useState } from "react";
-import itemsList from "../../listaItems";
-
+import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAngleDown } from "@fortawesome/free-solid-svg-icons";
-
 import Item from "../Item/Item";
-
 import styles from "../../styles/Categorias.module.scss";
 
 function Ofertas() {
   const [filtro, setFiltro] = useState("Padrão");
-  const itens = itemsList.filter((i) => i.promo === true);
+  const [itens, setItens] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  async function loadProducts() {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/products');
+      const products = await response.json();
+      const promoItems = products.filter((i: any) => i.promo === true);
+      setItens(promoItems);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const itensMenorPreco = itens.slice().sort((a, b) => {
     if (a.promo && b.promo) {
@@ -24,6 +39,7 @@ function Ofertas() {
       return a.pPrazo * 0.85 > b.pPrazo * 0.85 ? 1 : -1;
     }
   });
+
   const itensMaiorPreco = itens.slice().sort((a, b) => {
     if (a.promo && b.promo) {
       return a.pPrazo * 0.7 > b.pPrazo * 0.7 ? -1 : 1;
@@ -37,61 +53,31 @@ function Ofertas() {
   });
 
   function renderItens(opt: string) {
-    if (opt === "Padrão") {
-      return itens.map((i, key) => (
-        <Item
-          modelo={i.modelo}
-          key={key}
-          img2={i.img2}
-          img={i.img}
-          name={i.name}
-          pathName={i.pathName}
-          pPrazo={i.pPrazo}
-          categoria={i.categoria}
-          fabricante={i.fabricante}
-          id={i.id}
-          garantia={i.garantia}
-          specs={i.specs}
-          promo={i.promo}
-        />
-      ));
-    } else if (opt === "Menor Preço") {
-      return itensMenorPreco.map((i, key) => (
-        <Item
-          modelo={i.modelo}
-          key={key}
-          img2={i.img2}
-          img={i.img}
-          name={i.name}
-          pathName={i.pathName}
-          pPrazo={i.pPrazo}
-          categoria={i.categoria}
-          fabricante={i.fabricante}
-          id={i.id}
-          garantia={i.garantia}
-          specs={i.specs}
-          promo={i.promo}
-        />
-      ));
+    let itemsToRender = itens;
+    
+    if (opt === "Menor Preço") {
+      itemsToRender = itensMenorPreco;
     } else if (opt === "Maior Preço") {
-      return itensMaiorPreco.map((i, key) => (
-        <Item
-          modelo={i.modelo}
-          key={key}
-          img2={i.img2}
-          img={i.img}
-          name={i.name}
-          pathName={i.pathName}
-          pPrazo={i.pPrazo}
-          categoria={i.categoria}
-          fabricante={i.fabricante}
-          id={i.id}
-          garantia={i.garantia}
-          specs={i.specs}
-          promo={i.promo}
-        />
-      ));
+      itemsToRender = itensMaiorPreco;
     }
+
+    return itemsToRender.map((i, key) => (
+      <Item
+        modelo={i.modelo}
+        key={key}
+        img2={i.img2}
+        img={i.img}
+        name={i.name}
+        pathName={i.pathName}
+        pPrazo={i.pPrazo}
+        categoria={i.categoria}
+        fabricante={i.fabricante}
+        id={i.id}
+        garantia={i.garantia}
+        specs={i.specs}
+        promo={i.promo}
+      />
+    ));
   }
 
   function handleFiltro(opt: string) {
@@ -101,6 +87,16 @@ function Ofertas() {
 
   function handleOpen() {
     setOpen(!open);
+  }
+
+  if (loading) {
+    return (
+      <main className={styles.container}>
+        <div className="text-center py-8">
+          <p>Carregando ofertas...</p>
+        </div>
+      </main>
+    );
   }
 
   return (

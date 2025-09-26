@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- Interface do Produto (sem alterações) ---
+// Interface do Produto
 interface Product {
   id: string; 
   name: string;
@@ -19,13 +19,12 @@ interface Product {
   destaque: boolean;
 }
 
-// --- API Client para se comunicar com o nosso backend ---
+// API Client para se comunicar com o backend
 const apiClient = {
   getProducts: async (): Promise<Product[]> => {
     const response = await fetch('/api/products');
     if (!response.ok) throw new Error('Falha ao buscar produtos');
     const data = await response.json();
-    // Garante que specs e tags sejam arrays, mesmo que venham nulos do DB
     return data.map((p: any) => ({
         ...p,
         specs: p.specs || [],
@@ -59,8 +58,6 @@ const apiClient = {
     if (!response.ok) throw new Error('Falha ao deletar produto');
   }
 };
-// --- Fim do API Client ---
-
 
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
@@ -68,7 +65,6 @@ const EditIcon = () => (
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
 );
-
 
 const ProductManager: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -102,15 +98,14 @@ const ProductManager: React.FC = () => {
     loadProducts();
   }, []);
 
-  // CORREÇÃO APLICADA AQUI
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
 
-    // Usamos uma verificação de tipo mais robusta
-    if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
+    if (type === 'checkbox') {
+      const checkbox = e.target as HTMLInputElement;
       setFormState((prev: any) => ({
         ...prev,
-        [name]: e.target.checked,
+        [name]: checkbox.checked,
       }));
     } else {
       setFormState((prev: any) => ({
@@ -197,6 +192,11 @@ const ProductManager: React.FC = () => {
 
   const isFormOpen = isEditing || isFormVisible;
 
+  const categorias = [
+    'placa-mae', 'processador', 'placa-de-video', 'fonte', 
+    'gabinete', 'memoria-ram', 'ssd'
+  ];
+
   return (
     <div className="bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -208,38 +208,148 @@ const ProductManager: React.FC = () => {
               <h2 className="text-2xl font-semibold text-gray-700 mb-4">{isEditing ? 'Editar Produto' : 'Adicionar Novo Produto'}</h2>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <input type="text" name="name" value={formState.name} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="Nome do Produto" required />
+                  <input 
+                    type="text" 
+                    name="name" 
+                    value={formState.name} 
+                    onChange={handleInputChange} 
+                    className="mt-1 block w-full input-style" 
+                    placeholder="Nome do Produto" 
+                    required 
+                  />
                   <div className="grid grid-cols-2 gap-4">
-                    <input type="text" name="modelo" value={formState.modelo} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="Modelo" required />
-                    <input type="number" name="price" value={formState.price} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="Preço (R$)" step="0.01" required />
+                    <input 
+                      type="text" 
+                      name="modelo" 
+                      value={formState.modelo} 
+                      onChange={handleInputChange} 
+                      className="mt-1 block w-full input-style" 
+                      placeholder="Modelo" 
+                      required 
+                    />
+                    <input 
+                      type="number" 
+                      name="price" 
+                      value={formState.price} 
+                      onChange={handleInputChange} 
+                      className="mt-1 block w-full input-style" 
+                      placeholder="Preço (R$)" 
+                      step="0.01" 
+                      required 
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <input type="text" name="fabricante" value={formState.fabricante} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="Fabricante" />
-                    <input type="text" name="categoria" value={formState.categoria} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="Categoria" />
+                    <input 
+                      type="text" 
+                      name="fabricante" 
+                      value={formState.fabricante} 
+                      onChange={handleInputChange} 
+                      className="mt-1 block w-full input-style" 
+                      placeholder="Fabricante" 
+                    />
+                    <select 
+                      name="categoria" 
+                      value={formState.categoria} 
+                      onChange={handleInputChange} 
+                      className="mt-1 block w-full input-style"
+                      required
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categorias.map(cat => (
+                        <option key={cat} value={cat}>
+                          {cat.replace('-', ' ').toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                   <input type="text" name="garantia" value={formState.garantia} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="Garantia (Ex: 12 meses)" />
-                   <textarea name="tags" value={formState.tags} onChange={handleInputChange} rows={3} className="mt-1 block w-full input-style font-mono text-sm" placeholder='Tags (formato JSON)'/>
+                   <input 
+                     type="text" 
+                     name="garantia" 
+                     value={formState.garantia} 
+                     onChange={handleInputChange} 
+                     className="mt-1 block w-full input-style" 
+                     placeholder="Garantia (Ex: 12 meses)" 
+                   />
+                   <input 
+                     type="text" 
+                     name="pathName" 
+                     value={formState.pathName} 
+                     onChange={handleInputChange} 
+                     className="mt-1 block w-full input-style" 
+                     placeholder="URL do produto (deixe vazio para gerar automaticamente)" 
+                   />
+                   <textarea 
+                     name="tags" 
+                     value={formState.tags} 
+                     onChange={handleInputChange} 
+                     rows={3} 
+                     className="mt-1 block w-full input-style font-mono text-sm" 
+                     placeholder='Tags (formato JSON): ["tag1", "tag2"]'
+                   />
                 </div>
                 <div className="space-y-4">
-                  <input type="text" name="img" value={formState.img} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="URL Imagem Principal" />
-                  <input type="text" name="img2" value={formState.img2} onChange={handleInputChange} className="mt-1 block w-full input-style" placeholder="URL Imagem Secundária" />
-                  <textarea name="specs" value={formState.specs} onChange={handleInputChange} rows={4} className="mt-1 block w-full input-style font-mono text-sm" placeholder='Especificações (formato JSON)'/>
+                  <input 
+                    type="text" 
+                    name="img" 
+                    value={formState.img} 
+                    onChange={handleInputChange} 
+                    className="mt-1 block w-full input-style" 
+                    placeholder="URL Imagem Principal" 
+                  />
+                  <input 
+                    type="text" 
+                    name="img2" 
+                    value={formState.img2} 
+                    onChange={handleInputChange} 
+                    className="mt-1 block w-full input-style" 
+                    placeholder="URL Imagem Secundária" 
+                  />
+                  <textarea 
+                    name="specs" 
+                    value={formState.specs} 
+                    onChange={handleInputChange} 
+                    rows={4} 
+                    className="mt-1 block w-full input-style font-mono text-sm" 
+                    placeholder='Especificações (formato JSON): [{"categoria": ["spec1", "spec2"]}]'
+                  />
                   <div className="flex items-center pt-2 space-x-8">
                       <div className="flex items-center">
-                          <input type="checkbox" name="promo" checked={formState.promo} onChange={handleInputChange} id="promo" className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
+                          <input 
+                            type="checkbox" 
+                            name="promo" 
+                            checked={formState.promo} 
+                            onChange={handleInputChange} 
+                            id="promo" 
+                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" 
+                          />
                           <label htmlFor="promo" className="ml-2 block text-sm text-gray-900">Em promoção</label>
                       </div>
                        <div className="flex items-center">
-                          <input type="checkbox" name="destaque" checked={formState.destaque} onChange={handleInputChange} id="destaque" className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
+                          <input 
+                            type="checkbox" 
+                            name="destaque" 
+                            checked={formState.destaque} 
+                            onChange={handleInputChange} 
+                            id="destaque" 
+                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" 
+                          />
                           <label htmlFor="destaque" className="ml-2 block text-sm text-gray-900">Em destaque</label>
                       </div>
                   </div>
                 </div>
                 <div className="md:col-span-2 flex items-center space-x-4 pt-4">
-                  <button type="submit" disabled={loading} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300">
+                  <button 
+                    type="submit" 
+                    disabled={loading} 
+                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
+                  >
                     {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Adicionar Produto')}
                   </button>
-                  <button type="button" onClick={cancelEdit} className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  <button 
+                    type="button" 
+                    onClick={cancelEdit} 
+                    className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
                     Cancelar
                   </button>
                 </div>
@@ -248,7 +358,10 @@ const ProductManager: React.FC = () => {
           ) : (
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold text-gray-700">Produtos Cadastrados</h2>
-              <button onClick={() => { setIsFormVisible(true); setFormState(initialFormState); }} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <button 
+                onClick={() => { setIsFormVisible(true); setFormState(initialFormState); }} 
+                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
                 Adicionar Novo Produto
               </button>
             </div>
@@ -348,4 +461,3 @@ const ProductManager: React.FC = () => {
 };
 
 export default ProductManager;
-

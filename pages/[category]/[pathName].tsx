@@ -1,8 +1,7 @@
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import { ParsedUrlQuery } from "querystring";
-
 import Produto from "../../components/ProdutoPagina/Index";
-import itemsList from "../../listaItems";
+import { getConnection } from "../../lib/db";
 
 interface Props {
   modelo: string;
@@ -20,7 +19,8 @@ interface Props {
 }
 
 interface IParams extends ParsedUrlQuery {
-  id: string;
+  category: string;
+  pathName: string;
 }
 
 export default function ItemPage({
@@ -57,42 +57,47 @@ export default function ItemPage({
   );
 }
 
-export async function getStaticPaths() {
-  const paths = itemsList.map((i) => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { category, pathName } = context.params as IParams;
+
+  try {
+    const connection = await getConnection();
+    const [rows] = await connection.execute(
+      'SELECT * FROM products WHERE categoria = ? AND pathName = ?',
+      [category, pathName]
+    );
+    await connection.end();
+
+    const products = rows as any[];
+    
+    if (products.length === 0) {
+      return {
+        notFound: true,
+      };
+    }
+
+    const product = products[0];
+
     return {
-      params: {
-        pathName: i.pathName,
-        id: i.id,
-        category: i.categoria,
+      props: {
+        modelo: product.modelo,
+        categoria: product.categoria,
+        fabricante: product.fabricante,
+        id: product.id,
+        img: product.img,
+        img2: product.img2,
+        garantia: product.garantia,
+        name: product.name,
+        pathName: product.pathName,
+        pPrazo: product.price,
+        specs: product.specs ? JSON.parse(product.specs) : [],
+        promo: product.promo,
       },
     };
-  });
-
-  return {
-    paths,
-    fallback: false,
-  };
-}
-
-export const getStaticProps: GetStaticProps = async (context) => {
-  const { pathName } = context.params as IParams;
-  const item = itemsList.filter((i) => i.pathName === pathName);
-  const obj = Object.assign({}, ...item);
-
-  return {
-    props: {
-      modelo: obj.modelo,
-      categoria: obj.categoria,
-      fabricante: obj.fabricante,
-      id: obj.id,
-      img: obj.img,
-      img2: obj.img2,
-      garantia: obj.garantia,
-      name: obj.name,
-      pathName: obj.pathName,
-      pPrazo: obj.pPrazo,
-      specs: obj.specs,
-      promo: obj.promo,
-    },
-  };
+  } catch (error) {
+    console.error('Erro ao buscar produto:', error);
+    return {
+      notFound: true,
+    };
+  }
 };

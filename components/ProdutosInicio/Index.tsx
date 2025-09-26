@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
-
 import Image from "next/image";
 import Link from "next/link";
-
 import Item from "../Item/Item";
-import itemsList from "../../listaItems";
 import Promo from "./Promo";
-
 import styles from "../../styles/ProdutosInicio.module.scss";
 
 interface Props {
@@ -22,22 +18,42 @@ interface Props {
   garantia: string;
   specs: object[];
   promo: boolean;
+  destaque: boolean;
 }
 
 function Index() {
   const [destaque, setDestaque] = useState<Props[]>([]);
   const [promo, setPromo] = useState<Props[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDestaque();
-    getPromo();
+    loadProducts();
   }, []);
 
-  function getDestaque() {
-    let destaques = itemsList.filter((item) => item.destaque === true);
+  async function loadProducts() {
+    try {
+      const response = await fetch('/api/products');
+      const products = await response.json();
+      
+      getDestaque(products);
+      getPromo(products);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getDestaque(products: Props[]) {
+    let destaques = products.filter((item) => item.destaque === true);
     let randDestaques: Array<Props> = [];
 
-    while (randDestaques.length < 8) {
+    // Se não há produtos em destaque, pega produtos aleatórios
+    if (destaques.length === 0) {
+      destaques = products;
+    }
+
+    while (randDestaques.length < Math.min(8, destaques.length)) {
       let newRand = Math.floor(Math.random() * destaques.length);
       let newItem = destaques[newRand];
 
@@ -49,11 +65,16 @@ function Index() {
     setDestaque([...randDestaques]);
   }
 
-  function getPromo() {
-    let promos = itemsList.filter((item) => item.promo === true);
+  function getPromo(products: Props[]) {
+    let promos = products.filter((item) => item.promo === true);
     let randPromo: Array<Props> = [];
 
-    while (randPromo.length < 8) {
+    // Se não há produtos em promoção, pega produtos aleatórios
+    if (promos.length === 0) {
+      promos = products;
+    }
+
+    while (randPromo.length < Math.min(8, promos.length)) {
       let newRand = Math.floor(Math.random() * promos.length);
       let newItem = promos[newRand];
 
@@ -63,6 +84,16 @@ function Index() {
     }
 
     setPromo([...randPromo]);
+  }
+
+  if (loading) {
+    return (
+      <main className={styles.container}>
+        <div className="text-center py-8">
+          <p>Carregando produtos...</p>
+        </div>
+      </main>
+    );
   }
 
   return (

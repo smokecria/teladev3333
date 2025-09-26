@@ -1,7 +1,6 @@
-import { GetStaticProps } from "next";
-
+import { GetServerSideProps } from "next";
 import Categoria from "../../components/Categorias/index";
-import itemsList from "../../listaItems";
+import { getConnection } from "../../lib/db";
 
 export default function index() {
   return (
@@ -11,24 +10,32 @@ export default function index() {
   );
 }
 
-export async function getStaticPaths() {
-  const paths = itemsList.map((i) => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { category } = context.params!;
+
+  try {
+    const connection = await getConnection();
+    const [rows] = await connection.execute(
+      'SELECT COUNT(*) as count FROM products WHERE categoria = ?',
+      [category]
+    );
+    await connection.end();
+
+    const count = (rows as any)[0].count;
+    
+    if (count === 0) {
+      return {
+        notFound: true,
+      };
+    }
+
     return {
-      params: {
-        category: i.categoria,
-        id: i.id,
-      },
+      props: {},
     };
-  });
-
-  return {
-    paths,
-    fallback: false,
-  };
-}
-
-export const getStaticProps: GetStaticProps = async () => {
-  return {
-    props: {},
-  };
+  } catch (error) {
+    console.error('Erro ao verificar categoria:', error);
+    return {
+      props: {},
+    };
+  }
 };
