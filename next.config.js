@@ -3,15 +3,46 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['placehold.co'],
+    domains: ['placehold.co', 'api.qrserver.com'],
+    unoptimized: true
   },
-  // Configurações para produção
+  // Configurações para produção em VPS
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  // Configurações de build
+  // Configurações de build otimizadas
   experimental: {
-    outputStandalone: true,
+    outputStandalone: false,
+  },
+  // Configurações para Windows VPS
+  trailingSlash: false,
+  basePath: '',
+  assetPrefix: '',
+  // Otimizações de performance
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Headers de segurança
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ]
   },
 }
 

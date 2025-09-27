@@ -6,82 +6,98 @@ Este é um projeto de e-commerce completo para venda de componentes de computado
 
 ## 🚀 Tecnologias Utilizadas
 
-- **Frontend:** Next.js, React, TypeScript, Redux Toolkit, SASS
+- **Frontend:** Next.js 13, React 18, TypeScript, Redux Toolkit, SASS
 - **Backend:** Next.js API Routes, MySQL
 - **Database:** MySQL (XAMPP)
 - **Pagamentos:** PIX API, Cartão de Crédito (simulado)
 - **Testes:** Cypress
 - **UI:** FontAwesome, CSS Modules
 
-## 🛠️ Configuração para Produção
+## 🛠️ Configuração para VPS Windows
 
 ### Pré-requisitos
 
-1. **Node.js** (versão 16 ou superior)
-2. **XAMPP** com MySQL ativo
-3. **Git** (opcional)
+1. **Windows Server/VPS** com acesso de administrador
+2. **Node.js 18+** instalado
+3. **XAMPP** com MySQL ativo
+4. **Firewall** configurado para porta 3000
 
-### Instalação e Configuração
+### Instalação Automática (Recomendado)
 
-1. **Clone ou baixe o projeto**
-```bash
-git clone <url-do-repositorio>
-cd pcshop
+1. **Faça upload dos arquivos** para sua VPS
+2. **Execute como Administrador:**
+```cmd
+scripts\setup-windows-vps.bat
 ```
 
-2. **Instale as dependências**
-```bash
-npm install
+### Instalação Manual
+
+1. **Clone ou faça upload do projeto**
+```cmd
+cd C:\caminho\do\projeto
 ```
 
-3. **Configure o banco de dados**
-   - Inicie o XAMPP
-   - Ative o serviço MySQL
-   - O banco será criado automaticamente na primeira execução
+2. **Configure o firewall**
+```cmd
+netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000
+```
 
-4. **Configure as variáveis de ambiente**
-   - O arquivo `.env.local` já está configurado para XAMPP padrão
-   - Para PIX, configure suas credenciais reais:
-   ```env
-   PIX_CLIENT_ID=sua_credencial_aqui
-   PIX_CLIENT_SECRET=sua_credencial_secreta_aqui
-   ```
+3. **Instale as dependências**
+```cmd
+npm install --legacy-peer-deps --no-audit --no-fund
+```
+
+4. **Faça o build**
+```cmd
+npm run build
+```
+
+5. **Configure as variáveis de ambiente**
+   - Edite o arquivo `.env.local` com suas configurações
+   - Para PIX, configure suas credenciais reais
 
 ### 🚀 Comandos para Produção
 
-#### Build para Produção
-```bash
+#### Método 1: Scripts Automatizados
+```cmd
+# Build para produção
 npm run build:prod
-```
 
-#### Iniciar Servidor de Produção
-```bash
+# Iniciar servidor
 npm run start:prod
 ```
 
-#### Comando Manual (alternativo)
-```bash
+#### Método 2: Arquivos .bat (Windows)
+```cmd
+# Setup completo
+scripts\setup-windows-vps.bat
+
+# Iniciar servidor
+scripts\start-windows-service.bat
+```
+
+#### Método 3: Comandos Manuais
+```cmd
+# Build
 npm run build
+
+# Iniciar (escuta em todas as interfaces)
 npm run start
 ```
 
 ### 📱 Acessos
 
-- **Loja:** http://localhost:3000
-- **Admin:** http://localhost:3000/admin
+- **Loja:** http://IP_DA_VPS:3000
+- **Admin:** http://IP_DA_VPS:3000/admin
   - Usuário: `admin`
   - Senha: `admin123`
 
-### 🌐 Acesso pela Rede Local
+### 🌐 Configuração de Rede
 
-Para acessar de outros dispositivos na mesma rede:
-```
-http://SEU_IP_LOCAL:3000
-```
-
-Para descobrir seu IP:
-- Windows: `ipconfig`
-- Linux/Mac: `ifconfig`
+Para acessar de qualquer lugar:
+1. Configure o firewall da VPS para permitir porta 3000
+2. Se usar provedor de nuvem (AWS, Azure, etc.), configure o Security Group
+3. O servidor já está configurado para escutar em `0.0.0.0:3000`
 
 ## 🎯 Funcionalidades
 
@@ -104,7 +120,7 @@ Para descobrir seu IP:
 ### Banco de Dados
 - ✅ Migração automática dos produtos existentes
 - ✅ Tabelas otimizadas com índices
-- ✅ Backup automático das configurações
+- ✅ Pool de conexões para performance
 - ✅ Logs do sistema
 
 ## 🔧 Estrutura do Banco de Dados
@@ -116,6 +132,7 @@ O sistema cria automaticamente as seguintes tabelas:
 - `store_config` - Configurações da loja
 - `admin_users` - Usuários administrativos
 - `system_logs` - Logs do sistema
+- `user_sessions` - Sessões de usuário
 
 ## 📊 Monitoramento e Logs
 
@@ -124,6 +141,7 @@ O sistema registra automaticamente:
 - Novos pedidos e mudanças de status
 - Alterações nas configurações
 - Erros e exceções
+- Sessões de usuário
 
 ## 🔒 Segurança
 
@@ -132,67 +150,101 @@ O sistema registra automaticamente:
 - Proteção contra SQL Injection
 - Hash de senhas administrativas
 - Logs de auditoria
+- Headers de segurança
+- Pool de conexões seguro
 
-## 🚀 Deploy em Produção
+## 🚀 Deploy em VPS Windows
 
-### VPS/Servidor Dedicado
-
-1. **Instalar Node.js e MySQL**
-2. **Clonar o projeto**
-3. **Configurar variáveis de ambiente**
-4. **Executar build**
-```bash
-npm run build:prod
-```
-5. **Iniciar com PM2**
-```bash
-npm install -g pm2
-pm2 start npm --name "pcshop" -- run start
-pm2 startup
-pm2 save
+### Configuração Automática
+1. **Execute o setup:**
+```cmd
+scripts\setup-windows-vps.bat
 ```
 
-### Configuração de Proxy (Nginx)
-```nginx
-server {
-    listen 80;
-    server_name seudominio.com;
-    
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
+2. **Inicie o servidor:**
+```cmd
+scripts\start-windows-service.bat
+```
+
+### Configuração Manual
+1. **Instalar Node.js 18+**
+2. **Instalar XAMPP e ativar MySQL**
+3. **Configurar firewall:**
+```cmd
+netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000
+```
+4. **Fazer upload dos arquivos**
+5. **Executar build:**
+```cmd
+npm install --legacy-peer-deps
+npm run build
+```
+6. **Iniciar servidor:**
+```cmd
+npm run start
+```
+
+### Configuração de Proxy Reverso (IIS - Opcional)
+```xml
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+        <rule name="ReverseProxyInboundRule1" stopProcessing="true">
+          <match url="(.*)" />
+          <action type="Rewrite" url="http://localhost:3000/{R:1}" />
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>
 ```
 
 ## 🐛 Solução de Problemas
 
+### Erro de Dependências
+```cmd
+# Limpar cache
+npm cache clean --force
+
+# Remover node_modules
+rmdir /s /q node_modules
+
+# Reinstalar
+npm install --legacy-peer-deps --force
+```
+
 ### Erro de Conexão com Banco
 1. Verifique se o XAMPP/MySQL está rodando
 2. Confirme as credenciais no `.env.local`
-3. Teste a conexão: `npm run db:init`
+3. Teste a conexão: acesse `/api/init-database`
 
-### Produtos não aparecem
-1. Acesse `/api/init-database` para migrar produtos
-2. Verifique logs no console do navegador
-3. Confirme se o banco foi criado corretamente
+### Erro de Firewall
+```cmd
+# Verificar regras
+netsh advfirewall firewall show rule name="Next.js App"
+
+# Recriar regra
+netsh advfirewall firewall delete rule name="Next.js App"
+netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000
+```
 
 ### Erro de Build
-1. Limpe o cache: `rm -rf .next`
-2. Reinstale dependências: `npm ci`
-3. Execute build novamente: `npm run build`
+```cmd
+# Limpar cache do Next.js
+rmdir /s /q .next
+
+# Rebuild
+npm run build
+```
 
 ## 📞 Suporte
 
 Para dúvidas ou problemas:
 1. Verifique os logs no console
 2. Consulte a documentação das APIs
-3. Teste em ambiente de desenvolvimento primeiro
+3. Execute os scripts de diagnóstico
+4. Verifique as configurações de firewall
 
 ## 📄 Licença
 
@@ -200,4 +252,4 @@ Este projeto é para fins educacionais e demonstrativos.
 
 ---
 
-**Desenvolvido com ❤️ para demonstrar um e-commerce completo em Next.js**
+**Desenvolvido com ❤️ para demonstrar um e-commerce completo em Next.js otimizado para VPS Windows**
