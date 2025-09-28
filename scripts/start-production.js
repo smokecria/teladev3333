@@ -56,7 +56,7 @@ async function startServer() {
     
     // Verificar se o build existe
     if (!fs.existsSync('.next')) {
-      console.error('❌ Build não encontrado! Execute primeiro: npm run build:prod');
+      console.error('❌ Build não encontrado! Execute primeiro: npm run build');
       process.exit(1);
     }
     
@@ -69,6 +69,7 @@ async function startServer() {
     console.log('1. O XAMPP/MySQL está rodando');
     console.log('2. O firewall permite conexões na porta 3000');
     console.log('3. A VPS tem IP público configurado');
+    console.log('4. O provedor da VPS permite acesso externo na porta 3000');
     console.log('');
     console.log('🔄 Iniciando servidor...');
 
@@ -102,7 +103,11 @@ async function startServer() {
       console.log('');
       console.log('🔧 Comandos úteis:');
       console.log('- Ctrl+C para parar o servidor');
-      console.log('- Para logs: tail -f logs/app.log');
+      console.log('');
+      console.log('🔥 IMPORTANTE PARA VPS:');
+      console.log('- Configure o Security Group/Firewall do provedor para porta 3000');
+      console.log('- Verifique se o IP público está acessível externamente');
+      console.log('- Para SSL, configure um proxy reverso (nginx/IIS)');
     }, 3000);
 
     // Capturar sinais para encerramento gracioso
@@ -139,10 +144,11 @@ async function startServer() {
     console.error('❌ Erro ao iniciar servidor:', error.message);
     console.log('');
     console.log('🔧 Soluções:');
-    console.log('1. Verifique se o build foi executado: npm run build:prod');
+    console.log('1. Verifique se o build foi executado: npm run build');
     console.log('2. Verifique se a porta 3000 está livre');
     console.log('3. Execute como Administrador');
     console.log('4. Verifique as configurações de firewall');
+    console.log('5. Configure o Security Group da VPS para permitir porta 3000');
     process.exit(1);
   }
 }

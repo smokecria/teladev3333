@@ -10,8 +10,7 @@
     "cypress": "cypress open",
     "build:prod": "node scripts/build-production.js",
     "start:prod": "node scripts/start-production.js",
-    "db:init": "curl -X POST http://localhost:3000/api/init-database",
-    "postinstall": "npm run build"
+    "db:init": "curl -X POST http://localhost:3000/api/init-database"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.4.0",
@@ -20,7 +19,7 @@
     "@reduxjs/toolkit": "^1.9.5",
     "@types/uuid": "^9.0.2",
     "mysql2": "^3.6.0",
-    "next": "^13.4.19",
+    "next": "^13.5.11",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^8.1.2",

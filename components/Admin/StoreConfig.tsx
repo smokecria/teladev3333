@@ -144,14 +144,23 @@ export default function StoreConfig() {
     setIsEditing(false);
   };
 
-  const handleStoreInputChange = (section: string, field: string, value: string) => {
-    setStoreConfig(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof StoreConfig],
-        [field]: value
+  const handleStoreInputChange = (section: keyof StoreConfig, field: string, value: string) => {
+    setStoreConfig(prev => {
+      const sectionData = prev[section];
+      if (typeof sectionData === 'object' && sectionData !== null) {
+        return {
+          ...prev,
+          [section]: {
+            ...sectionData,
+            [field]: value
+          }
+        };
       }
-    }));
+      return {
+        ...prev,
+        [section]: value
+      };
+    });
   };
 
   const handlePixInputChange = (field: string, value: string | boolean) => {

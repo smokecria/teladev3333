@@ -9,8 +9,6 @@ const dbConfig = {
   database: process.env.DB_DATABASE || 'pcshop',
   charset: 'utf8mb4',
   timezone: '+00:00',
-  acquireTimeout: 60000,
-  timeout: 60000,
   reconnect: true,
   multipleStatements: false
 };
@@ -24,9 +22,7 @@ function createPool() {
       ...dbConfig,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0,
-      acquireTimeout: 60000,
-      timeout: 60000
+      queueLimit: 0
     });
   }
   return pool;
@@ -249,8 +245,8 @@ export async function migrateProductsFromList() {
           JSON.stringify(item.tags || []),
           item.destaque || false
         ]);
-      } catch (itemError) {
-        console.warn(`⚠️ Erro ao migrar produto ${item.name}:`, itemError.message);
+      } catch (itemError: any) {
+        console.warn(`⚠️ Erro ao migrar produto ${item.name}:`, itemError?.message || 'Erro desconhecido');
       }
     }
 

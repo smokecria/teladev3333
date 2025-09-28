@@ -10,11 +10,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  // Configurações de build otimizadas
-  experimental: {
-    outputStandalone: false,
-  },
-  // Configurações para Windows VPS
+  // Remover configuração standalone que estava causando problemas
   trailingSlash: false,
   basePath: '',
   assetPrefix: '',

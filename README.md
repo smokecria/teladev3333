@@ -60,15 +60,6 @@ npm run build
 
 #### Método 1: Scripts Automatizados
 ```cmd
-# Build para produção
-npm run build:prod
-
-# Iniciar servidor
-npm run start:prod
-```
-
-#### Método 2: Arquivos .bat (Windows)
-```cmd
 # Setup completo
 scripts\setup-windows-vps.bat
 
@@ -76,7 +67,7 @@ scripts\setup-windows-vps.bat
 scripts\start-windows-service.bat
 ```
 
-#### Método 3: Comandos Manuais
+#### Método 2: Comandos Manuais
 ```cmd
 # Build
 npm run build
@@ -92,12 +83,22 @@ npm run start
   - Usuário: `admin`
   - Senha: `admin123`
 
-### 🌐 Configuração de Rede
+### 🌐 Configuração de Rede para VPS
 
 Para acessar de qualquer lugar:
-1. Configure o firewall da VPS para permitir porta 3000
-2. Se usar provedor de nuvem (AWS, Azure, etc.), configure o Security Group
-3. O servidor já está configurado para escutar em `0.0.0.0:3000`
+
+1. **Firewall do Windows:**
+```cmd
+netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000
+```
+
+2. **Provedor de VPS (AWS, Azure, Google Cloud, etc.):**
+   - Configure o Security Group para permitir porta 3000
+   - Libere acesso TCP na porta 3000 de qualquer origem (0.0.0.0/0)
+
+3. **Verificar IP Público:**
+   - Certifique-se que sua VPS tem IP público
+   - Teste o acesso: `http://SEU_IP_PUBLICO:3000`
 
 ## 🎯 Funcionalidades
 
@@ -184,20 +185,23 @@ npm run build
 npm run start
 ```
 
-### Configuração de Proxy Reverso (IIS - Opcional)
-```xml
-<configuration>
-  <system.webServer>
-    <rewrite>
-      <rules>
-        <rule name="ReverseProxyInboundRule1" stopProcessing="true">
-          <match url="(.*)" />
-          <action type="Rewrite" url="http://localhost:3000/{R:1}" />
-        </rule>
-      </rules>
-    </rewrite>
-  </system.webServer>
-</configuration>
+### ⚠️ IMPORTANTE para Acesso Público
+
+Para que sua loja seja acessível publicamente:
+
+1. **Configure o Security Group da VPS:**
+   - AWS: EC2 → Security Groups → Inbound Rules → Add Rule (TCP, Port 3000, Source: 0.0.0.0/0)
+   - Azure: Network Security Group → Inbound security rules → Add (TCP, Port 3000, Source: Any)
+   - Google Cloud: VPC Firewall → Create Rule (TCP, Port 3000, Source: 0.0.0.0/0)
+
+2. **Verifique o IP Público:**
+```cmd
+curl ifconfig.me
+```
+
+3. **Teste o acesso:**
+```
+http://SEU_IP_PUBLICO:3000
 ```
 
 ## 🐛 Solução de Problemas
@@ -219,15 +223,11 @@ npm install --legacy-peer-deps --force
 2. Confirme as credenciais no `.env.local`
 3. Teste a conexão: acesse `/api/init-database`
 
-### Erro de Firewall
-```cmd
-# Verificar regras
-netsh advfirewall firewall show rule name="Next.js App"
-
-# Recriar regra
-netsh advfirewall firewall delete rule name="Next.js App"
-netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000
-```
+### Site não acessível externamente
+1. **Verifique o firewall do Windows**
+2. **Configure o Security Group da VPS**
+3. **Confirme que o servidor está escutando em 0.0.0.0:3000**
+4. **Teste com o IP público da VPS**
 
 ### Erro de Build
 ```cmd
@@ -244,7 +244,7 @@ Para dúvidas ou problemas:
 1. Verifique os logs no console
 2. Consulte a documentação das APIs
 3. Execute os scripts de diagnóstico
-4. Verifique as configurações de firewall
+4. Verifique as configurações de firewall e Security Group
 
 ## 📄 Licença
 

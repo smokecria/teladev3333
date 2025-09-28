@@ -9,7 +9,7 @@ echo.
 REM Verificar se o build existe
 if not exist ".next" (
     echo ❌ Build não encontrado!
-    echo Execute primeiro: npm run build:prod
+    echo Execute primeiro: npm run build
     pause
     exit /b 1
 )
@@ -30,7 +30,7 @@ echo.
 echo ⚠️ Certifique-se que:
 echo 1. XAMPP/MySQL está rodando
 echo 2. Firewall permite porta 3000
-echo 3. VPS tem IP público
+echo 3. VPS tem IP público configurado
 echo.
 echo 🚀 Iniciando servidor...
 echo.
@@ -44,4 +44,6 @@ set NEXT_TELEMETRY_DISABLED=1
 REM Iniciar servidor
 npm run start
 
+echo.
+echo ❌ Servidor foi encerrado
 pause

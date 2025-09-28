@@ -1,10 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAngleDown } from "@fortawesome/free-solid-svg-icons";
-
-import itemsList from "../../listaItems";
 
 import styles from "../../styles/Categorias.module.scss";
 
@@ -16,9 +14,15 @@ interface Props {
 function FiltroTopo({ handleFiltro, filtro }: Props) {
   const router = useRouter();
   const { category } = router.query;
-  const items = itemsList.filter((i) => i.categoria === category) || "OFERTAS";
+  const [categoryName, setCategoryName] = useState<string>('');
 
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (category && typeof category === 'string') {
+      setCategoryName(category.replace(/-/g, " ").toUpperCase());
+    }
+  }, [category]);
 
   function handleOpen() {
     setOpen(!open);
@@ -32,7 +36,7 @@ function FiltroTopo({ handleFiltro, filtro }: Props) {
   return (
     <div className={styles.containerFiltro}>
       <h1 className={styles.categoriaNome}>
-        {items[0].categoria.replace(/-/g, " ").toUpperCase() || items}
+        {categoryName || 'CATEGORIA'}
       </h1>
       <div className={styles.filtro}>
         <p>FILTRAR:</p>
