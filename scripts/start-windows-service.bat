@@ -31,6 +31,7 @@ echo ⚠️ Certifique-se que:
 echo 1. XAMPP/MySQL está rodando
 echo 2. Firewall permite porta 3000
 echo 3. VPS tem IP público configurado
+echo 4. Security Group permite acesso externo na porta 3000
 echo.
 echo 🚀 Iniciando servidor...
 echo.

@@ -9,7 +9,6 @@ const dbConfig = {
   database: process.env.DB_DATABASE || 'pcshop',
   charset: 'utf8mb4',
   timezone: '+00:00',
-  reconnect: true,
   multipleStatements: false
 };
 
@@ -211,17 +210,39 @@ export async function migrateProductsFromList() {
       return;
     }
 
-    // Importar produtos do arquivo listaItems
-    let itemsList;
+    // Tentar importar produtos do arquivo listaItems
+    let itemsList: any[] = [];
     try {
-      itemsList = require('../listaItems').default;
+      // Importar dinamicamente o arquivo listaItems
+      const listaItemsPath = require.resolve('../listaItems/index.tsx');
+      delete require.cache[listaItemsPath]; // Limpar cache
+      
+      const listaItemsModule = require('../listaItems/index.tsx');
+      
+      // Verificar diferentes formas de export
+      if (listaItemsModule.default && Array.isArray(listaItemsModule.default)) {
+        itemsList = listaItemsModule.default;
+      } else if (listaItemsModule.listaItems && Array.isArray(listaItemsModule.listaItems)) {
+        itemsList = listaItemsModule.listaItems;
+      } else if (Array.isArray(listaItemsModule)) {
+        itemsList = listaItemsModule;
+      } else {
+        throw new Error('Formato de export não reconhecido');
+      }
+      
+      if (!Array.isArray(itemsList) || itemsList.length === 0) {
+        throw new Error('Lista de produtos vazia ou inválida');
+      }
+      
+      console.log(`📦 Encontrados ${itemsList.length} produtos no listaItems`);
     } catch (error) {
-      console.log('⚠️ Arquivo listaItems não encontrado, criando produtos de exemplo...');
+      console.log('❌ Falha ao carregar listaItems. Criando produtos de exemplo...');
       itemsList = createSampleProducts();
     }
     
     console.log(`🔄 Migrando ${itemsList.length} produtos para o banco de dados...`);
     
+    let successCount = 0;
     for (const item of itemsList) {
       try {
         await connection.execute(`
@@ -240,20 +261,22 @@ export async function migrateProductsFromList() {
           item.img2 || '/images/sample.jpg',
           item.garantia || '12 meses',
           JSON.stringify(item.specs || []),
-          item.promo || false,
+          Boolean(item.promo),
           item.pathName || generatePathName(item.name || 'produto'),
           JSON.stringify(item.tags || []),
-          item.destaque || false
+          Boolean(item.destaque)
         ]);
+        successCount++;
       } catch (itemError: any) {
         console.warn(`⚠️ Erro ao migrar produto ${item.name}:`, itemError?.message || 'Erro desconhecido');
       }
     }
 
-    console.log(`✅ ${itemsList.length} produtos migrados com sucesso para o banco de dados`);
+    console.log(`✅ ${successCount} produtos migrados com sucesso para o banco de dados`);
   } catch (error) {
     console.error('❌ Erro ao migrar produtos:', error);
-    throw error;
+    // Não fazer throw aqui para não quebrar a inicialização
+    console.log('⚠️ Continuando sem migração de produtos...');
   } finally {
     if (connection) {
       connection.release();
@@ -271,8 +294,8 @@ function createSampleProducts() {
       categoria: 'processador',
       fabricante: 'Intel',
       pPrazo: 899.99,
-      img: '/images/sample.jpg',
-      img2: '/images/sample.jpg',
+      img: '/images/cpu/i5-1.jpg',
+      img2: '/images/cpu/i5-2.jpg',
       garantia: '36 meses',
       specs: [{"Especificações": ["6 núcleos", "12 threads", "2.5GHz base"]}],
       promo: false,
@@ -287,14 +310,94 @@ function createSampleProducts() {
       categoria: 'placa-de-video',
       fabricante: 'NVIDIA',
       pPrazo: 2499.99,
-      img: '/images/sample.jpg',
-      img2: '/images/sample.jpg',
+      img: '/images/gpu/rtx-2060-1.jpg',
+      img2: '/images/gpu/rtx-2060-2.jpg',
       garantia: '24 meses',
       specs: [{"Especificações": ["8GB GDDR6", "Ray Tracing", "DLSS"]}],
       promo: true,
       pathName: 'rtx-3060-ti',
       tags: ['nvidia', 'gpu', 'gaming'],
       destaque: true
+    },
+    {
+      id: 'sample-3',
+      name: 'Gabinete Corsair 4000D',
+      modelo: '4000D',
+      categoria: 'gabinete',
+      fabricante: 'Corsair',
+      pPrazo: 599.99,
+      img: '/images/gabinete/corsair-1.jpg',
+      img2: '/images/gabinete/corsair-2.jpg',
+      garantia: '12 meses',
+      specs: [{"Especificações": ["Mid Tower", "Vidro Temperado", "ATX"]}],
+      promo: false,
+      pathName: 'corsair-4000d',
+      tags: ['corsair', 'gabinete', 'mid-tower'],
+      destaque: false
+    },
+    {
+      id: 'sample-4',
+      name: 'Memória RAM Corsair 16GB DDR4',
+      modelo: 'Vengeance LPX',
+      categoria: 'memoria-ram',
+      fabricante: 'Corsair',
+      pPrazo: 399.99,
+      img: '/images/ram/corsair-2400-1.jpg',
+      img2: '/images/ram/corsair-2400-2.jpg',
+      garantia: '24 meses',
+      specs: [{"Especificações": ["16GB", "DDR4", "2400MHz"]}],
+      promo: true,
+      pathName: 'corsair-vengeance-lpx-16gb',
+      tags: ['corsair', 'ram', 'ddr4'],
+      destaque: true
+    },
+    {
+      id: 'sample-5',
+      name: 'SSD Kingston 500GB',
+      modelo: 'A400',
+      categoria: 'ssd',
+      fabricante: 'Kingston',
+      pPrazo: 299.99,
+      img: '/images/ssd/kingston-500-1.jpg',
+      img2: '/images/ssd/kingston-500-2.jpg',
+      garantia: '36 meses',
+      specs: [{"Especificações": ["500GB", "SATA III", "500MB/s"]}],
+      promo: false,
+      pathName: 'kingston-a400-500gb',
+      tags: ['kingston', 'ssd', 'storage'],
+      destaque: false
+    },
+    {
+      id: 'sample-6',
+      name: 'Placa-Mãe ASUS B550M',
+      modelo: 'B550M-A',
+      categoria: 'placa-mae',
+      fabricante: 'ASUS',
+      pPrazo: 699.99,
+      img: '/images/motherboard/asus-b550m-1.jpg',
+      img2: '/images/motherboard/asus-b550m-2.jpg',
+      garantia: '24 meses',
+      specs: [{"Especificações": ["Socket AM4", "DDR4", "PCIe 4.0"]}],
+      promo: false,
+      pathName: 'asus-b550m-a',
+      tags: ['asus', 'motherboard', 'am4'],
+      destaque: true
+    },
+    {
+      id: 'sample-7',
+      name: 'Fonte XPG 650W',
+      modelo: 'Core Reactor',
+      categoria: 'fonte',
+      fabricante: 'XPG',
+      pPrazo: 499.99,
+      img: '/images/fonte/xpg-650-1.jpg',
+      img2: '/images/fonte/xpg-650-2.jpg',
+      garantia: '60 meses',
+      specs: [{"Especificações": ["650W", "80+ Gold", "Modular"]}],
+      promo: true,
+      pathName: 'xpg-core-reactor-650w',
+      tags: ['xpg', 'fonte', 'modular'],
+      destaque: false
     }
   ];
 }

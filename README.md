@@ -37,22 +37,27 @@ scripts\setup-windows-vps.bat
 cd C:\caminho\do\projeto
 ```
 
-2. **Configure o firewall**
+2. **Corrigir dependências (se necessário)**
+```cmd
+scripts\fix-dependencies.bat
+```
+
+3. **Configure o firewall**
 ```cmd
 netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000
 ```
 
-3. **Instale as dependências**
+4. **Instale as dependências**
 ```cmd
-npm install --legacy-peer-deps --no-audit --no-fund
+npm install --legacy-peer-deps --no-audit --no-fund --exact
 ```
 
-4. **Faça o build**
+5. **Faça o build**
 ```cmd
 npm run build
 ```
 
-5. **Configure as variáveis de ambiente**
+6. **Configure as variáveis de ambiente**
    - Edite o arquivo `.env.local` com suas configurações
    - Para PIX, configure suas credenciais reais
 
@@ -93,8 +98,9 @@ netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow proto
 ```
 
 2. **Provedor de VPS (AWS, Azure, Google Cloud, etc.):**
-   - Configure o Security Group para permitir porta 3000
-   - Libere acesso TCP na porta 3000 de qualquer origem (0.0.0.0/0)
+   - **AWS:** EC2 → Security Groups → Inbound Rules → Add Rule (TCP, Port 3000, Source: 0.0.0.0/0)
+   - **Azure:** Network Security Group → Inbound security rules → Add (TCP, Port 3000, Source: Any)
+   - **Google Cloud:** VPC Firewall → Create Rule (TCP, Port 3000, Source: 0.0.0.0/0)
 
 3. **Verificar IP Público:**
    - Certifique-se que sua VPS tem IP público
@@ -177,7 +183,7 @@ netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow proto
 4. **Fazer upload dos arquivos**
 5. **Executar build:**
 ```cmd
-npm install --legacy-peer-deps
+npm install --legacy-peer-deps --exact
 npm run build
 ```
 6. **Iniciar servidor:**
@@ -190,9 +196,9 @@ npm run start
 Para que sua loja seja acessível publicamente:
 
 1. **Configure o Security Group da VPS:**
-   - AWS: EC2 → Security Groups → Inbound Rules → Add Rule (TCP, Port 3000, Source: 0.0.0.0/0)
-   - Azure: Network Security Group → Inbound security rules → Add (TCP, Port 3000, Source: Any)
-   - Google Cloud: VPC Firewall → Create Rule (TCP, Port 3000, Source: 0.0.0.0/0)
+   - **AWS:** EC2 → Security Groups → Inbound Rules → Add Rule (TCP, Port 3000, Source: 0.0.0.0/0)
+   - **Azure:** Network Security Group → Inbound security rules → Add (TCP, Port 3000, Source: Any)
+   - **Google Cloud:** VPC Firewall → Create Rule (TCP, Port 3000, Source: 0.0.0.0/0)
 
 2. **Verifique o IP Público:**
 ```cmd
@@ -208,13 +214,13 @@ http://SEU_IP_PUBLICO:3000
 
 ### Erro de Dependências
 ```cmd
-# Limpar cache
+# Usar script de correção
+scripts\fix-dependencies.bat
+
+# Ou manualmente:
 npm cache clean --force
-
-# Remover node_modules
 rmdir /s /q node_modules
-
-# Reinstalar
+del package-lock.json
 npm install --legacy-peer-deps --force
 ```
 
@@ -237,6 +243,11 @@ rmdir /s /q .next
 # Rebuild
 npm run build
 ```
+
+### Erro de Migração de Produtos
+1. Verifique se o arquivo `listaItems/index.tsx` existe
+2. Confirme que exporta um array de produtos
+3. Execute manualmente: `POST /api/init-database`
 
 ## 📞 Suporte
 

@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: ['placehold.co', 'api.qrserver.com'],
     unoptimized: true
@@ -10,7 +9,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  // Remover configuração standalone que estava causando problemas
   trailingSlash: false,
   basePath: '',
   assetPrefix: '',

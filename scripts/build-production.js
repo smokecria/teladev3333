@@ -36,6 +36,8 @@ try {
   // 2. Limpar cache e arquivos antigos
   console.log('🧹 Limpando cache e arquivos antigos...');
   try {
+    execSync('npm cache clean --force', { stdio: 'inherit' });
+    
     if (fs.existsSync('.next')) {
       execSync('rmdir /s /q .next', { stdio: 'inherit', shell: true });
     }
@@ -43,16 +45,17 @@ try {
       console.log('Removendo node_modules antigo...');
       execSync('rmdir /s /q node_modules', { stdio: 'inherit', shell: true });
     }
-    // Limpar cache do npm
-    execSync('npm cache clean --force', { stdio: 'inherit' });
+    if (fs.existsSync('package-lock.json')) {
+      execSync('del package-lock.json', { stdio: 'inherit', shell: true });
+    }
   } catch (error) {
     console.warn('⚠️ Aviso ao limpar cache:', error.message);
   }
 
-  // 3. Instalar dependências com flags de compatibilidade
+  // 3. Instalar dependências com versões fixas
   console.log('📦 Instalando dependências...');
   try {
-    execSync('npm install --legacy-peer-deps --no-audit --no-fund', { 
+    execSync('npm install --legacy-peer-deps --no-audit --no-fund --exact', { 
       stdio: 'inherit',
       timeout: 300000 // 5 minutos timeout
     });
@@ -105,10 +108,16 @@ try {
   console.log('📋 Próximos passos:');
   console.log('1. Inicie o XAMPP e certifique-se que o MySQL está rodando');
   console.log('2. Configure o firewall do Windows para permitir porta 3000');
-  console.log('3. Execute: npm run start:prod');
+  console.log('3. Configure o Security Group da VPS para permitir acesso externo');
+  console.log('4. Execute: npm run start');
   console.log('');
   console.log('🔧 Configurações de Firewall (execute como Administrador):');
   console.log('netsh advfirewall firewall add rule name="Next.js App" dir=in action=allow protocol=TCP localport=3000');
+  console.log('');
+  console.log('🌐 IMPORTANTE PARA ACESSO PÚBLICO:');
+  console.log('- Configure o Security Group da sua VPS (AWS/Azure/Google Cloud)');
+  console.log('- Libere a porta 3000 para acesso externo (0.0.0.0/0)');
+  console.log('- Verifique se sua VPS tem IP público');
   console.log('');
   console.log('🔑 Admin Panel:');
   console.log('- Usuário: admin');
@@ -122,5 +131,6 @@ try {
   console.log('2. Verifique se o Node.js está atualizado');
   console.log('3. Limpe o cache: npm cache clean --force');
   console.log('4. Delete node_modules e package-lock.json manualmente');
+  console.log('5. Use: npm install --legacy-peer-deps --force');
   process.exit(1);
 }

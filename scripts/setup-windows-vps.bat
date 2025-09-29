@@ -38,20 +38,16 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo 4. Limpando cache...
+echo 4. Limpando cache e arquivos antigos...
 npm cache clean --force >nul 2>&1
-echo ✅ Cache limpo
-
-echo.
-echo 5. Removendo arquivos antigos...
 if exist node_modules rmdir /s /q node_modules >nul 2>&1
 if exist .next rmdir /s /q .next >nul 2>&1
 if exist package-lock.json del package-lock.json >nul 2>&1
-echo ✅ Arquivos antigos removidos
+echo ✅ Cache e arquivos antigos removidos
 
 echo.
-echo 6. Instalando dependências...
-npm install --legacy-peer-deps --no-audit --no-fund
+echo 5. Instalando dependências com versões fixas...
+npm install --legacy-peer-deps --no-audit --no-fund --exact
 if %errorlevel% neq 0 (
     echo ❌ Erro na instalação! Tentando método alternativo...
     npm install --force --no-audit --no-fund
@@ -64,7 +60,7 @@ if %errorlevel% neq 0 (
 echo ✅ Dependências instaladas
 
 echo.
-echo 7. Fazendo build...
+echo 6. Fazendo build...
 npm run build
 if %errorlevel% neq 0 (
     echo ❌ Erro no build!
@@ -74,7 +70,7 @@ if %errorlevel% neq 0 (
 echo ✅ Build concluído
 
 echo.
-echo 8. Testando conexão com banco...
+echo 7. Testando conexão com banco...
 echo Aguarde, testando MySQL...
 timeout /t 3 >nul
 
@@ -96,6 +92,11 @@ echo.
 echo Credenciais Admin:
 echo Usuario: admin
 echo Senha: admin123
+echo.
+echo ⚠️ IMPORTANTE PARA ACESSO PUBLICO:
+echo 1. Configure o Security Group da VPS para permitir porta 3000
+echo 2. Verifique se o IP %IP% é público
+echo 3. Teste: http://SEU_IP_PUBLICO:3000
 echo.
 echo ⚠️ IMPORTANTE:
 echo 1. Certifique-se que o XAMPP/MySQL está rodando

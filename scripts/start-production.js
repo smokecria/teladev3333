@@ -69,7 +69,12 @@ async function startServer() {
     console.log('1. O XAMPP/MySQL está rodando');
     console.log('2. O firewall permite conexões na porta 3000');
     console.log('3. A VPS tem IP público configurado');
-    console.log('4. O provedor da VPS permite acesso externo na porta 3000');
+    console.log('4. O Security Group permite acesso externo na porta 3000');
+    console.log('');
+    console.log('🌐 IMPORTANTE PARA ACESSO PÚBLICO:');
+    console.log('- AWS: EC2 → Security Groups → Inbound Rules → Add Rule (TCP, Port 3000, Source: 0.0.0.0/0)');
+    console.log('- Azure: Network Security Group → Inbound security rules → Add (TCP, Port 3000, Source: Any)');
+    console.log('- Google Cloud: VPC Firewall → Create Rule (TCP, Port 3000, Source: 0.0.0.0/0)');
     console.log('');
     console.log('🔄 Iniciando servidor...');
 
@@ -108,6 +113,9 @@ async function startServer() {
       console.log('- Configure o Security Group/Firewall do provedor para porta 3000');
       console.log('- Verifique se o IP público está acessível externamente');
       console.log('- Para SSL, configure um proxy reverso (nginx/IIS)');
+      console.log('');
+      console.log('🌐 Teste de acesso público:');
+      console.log(`curl -I http://${localIP}:3000`);
     }, 3000);
 
     // Capturar sinais para encerramento gracioso
