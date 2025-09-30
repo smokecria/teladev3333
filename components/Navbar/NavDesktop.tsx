@@ -117,9 +117,9 @@ function NavDesktop({ numCart }: Props) {
               </div>
               {showUserMenu && (
                 <div className={styles.userDropdown}>
-                  <button onClick={() => setShowUserMenu(false)}>Meus Pedidos</button>
-                  <button onClick={() => setShowUserMenu(false)}>Meus Dados</button>
-                  <button onClick={() => setShowUserMenu(false)}>Cartões Salvos</button>
+                  <button onClick={handleMyOrders}>Meus Pedidos</button>
+                  <button onClick={handleMyAccount}>Minha Conta</button>
+                  <button onClick={handleMyAccount}>Cartões Salvos</button>
                   <button onClick={handleLogout}>Sair</button>
                 </div>
               )}

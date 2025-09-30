@@ -266,67 +266,25 @@ export async function migrateProductsFromList() {
       return;
     }
 
-    // Tentar importar produtos do arquivo listaItems
+    // Carregar produtos do arquivo JSON
     let itemsList: any[] = [];
     try {
-      // Tentar diferentes caminhos para o arquivo listaItems
-      const possiblePaths = [
-        '../listaItems/index.tsx',
-        './listaItems/index.tsx',
-        '../../listaItems/index.tsx',
-        '../../../listaItems/index.tsx'
-      ];
+      const fs = require('fs');
+      const path = require('path');
       
-      let listaItemsModule = null;
+      // Tentar carregar do arquivo JSON
+      const jsonPath = path.join(process.cwd(), 'listaItems', 'products.json');
       
-      for (const path of possiblePaths) {
-        try {
-          const resolvedPath = require.resolve(path);
-          delete require.cache[resolvedPath];
-          listaItemsModule = require(path);
-          console.log(`📦 Arquivo listaItems encontrado em: ${path}`);
-          break;
-        } catch (e) {
-          // Continuar tentando outros caminhos
-        }
-      }
-      
-      if (!listaItemsModule) {
-        throw new Error('Arquivo listaItems não encontrado em nenhum caminho');
-      }
-      
-      // Verificar diferentes formas de export
-      if (listaItemsModule.default && Array.isArray(listaItemsModule.default)) {
-        itemsList = listaItemsModule.default;
-      } else if (listaItemsModule.listaItems && Array.isArray(listaItemsModule.listaItems)) {
-        itemsList = listaItemsModule.listaItems;
-      } else if (Array.isArray(listaItemsModule)) {
-        itemsList = listaItemsModule;
-      } else if (listaItemsModule.items && Array.isArray(listaItemsModule.items)) {
-        itemsList = listaItemsModule.items;
+      if (fs.existsSync(jsonPath)) {
+        const jsonData = fs.readFileSync(jsonPath, 'utf8');
+        itemsList = JSON.parse(jsonData);
+        console.log(`📦 Carregados ${itemsList.length} produtos do arquivo JSON`);
       } else {
-        // Tentar encontrar qualquer array no módulo
-        const keys = Object.keys(listaItemsModule);
-        for (const key of keys) {
-          if (Array.isArray(listaItemsModule[key])) {
-            itemsList = listaItemsModule[key];
-            console.log(`📦 Array de produtos encontrado na propriedade: ${key}`);
-            break;
-          }
-        }
-        
-        if (itemsList.length === 0) {
-          throw new Error('Nenhum array de produtos encontrado no arquivo');
-        }
+        console.log('📦 Arquivo JSON não encontrado, criando produtos de exemplo...');
+        itemsList = createSampleProducts();
       }
-      
-      if (!Array.isArray(itemsList) || itemsList.length === 0) {
-        throw new Error('Lista de produtos vazia ou inválida');
-      }
-      
-      console.log(`📦 Encontrados ${itemsList.length} produtos no listaItems`);
     } catch (error) {
-      console.log(`❌ Falha ao carregar listaItems: ${error}. Criando produtos de exemplo...`);
+      console.log(`❌ Erro ao carregar produtos: ${error}. Usando produtos de exemplo...`);
       itemsList = createSampleProducts();
     }
     

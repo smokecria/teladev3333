@@ -41,6 +41,23 @@ export default function LoginModal({ isOpen, onClose, onLogin }: Props) {
     return value;
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      cpf: '',
+      phone: ''
+    });
+    setError('');
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -64,7 +81,7 @@ export default function LoginModal({ isOpen, onClose, onLogin }: Props) {
         if (response.ok) {
           localStorage.setItem('customerSession', data.sessionId);
           onLogin(data.customer, data.sessionId);
-          onClose();
+          handleClose();
         } else {
           setError(data.error || 'Erro ao fazer login');
         }
@@ -94,7 +111,7 @@ export default function LoginModal({ isOpen, onClose, onLogin }: Props) {
         if (response.ok) {
           localStorage.setItem('customerSession', data.sessionId);
           onLogin(data.customer, data.sessionId);
-          onClose();
+          handleClose();
         } else {
           setError(data.error || 'Erro ao criar conta');
         }
@@ -113,20 +130,26 @@ export default function LoginModal({ isOpen, onClose, onLogin }: Props) {
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
           <h2>{isLoginMode ? 'Entrar' : 'Criar Conta'}</h2>
-          <button onClick={onClose} className={styles.closeBtn}>×</button>
+          <button onClick={handleClose} className={styles.closeBtn}>×</button>
         </div>
 
         <div className={styles.modalBody}>
           <div className={styles.authTabs}>
             <button 
               className={isLoginMode ? styles.active : ''}
-              onClick={() => setIsLoginMode(true)}
+              onClick={() => {
+                setIsLoginMode(true);
+                resetForm();
+              }}
             >
               Entrar
             </button>
             <button 
               className={!isLoginMode ? styles.active : ''}
-              onClick={() => setIsLoginMode(false)}
+              onClick={() => {
+                setIsLoginMode(false);
+                resetForm();
+              }}
             >
               Cadastrar
             </button>
