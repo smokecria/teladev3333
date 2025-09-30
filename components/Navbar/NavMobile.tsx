@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 
 import Navbar from "./Navbar";
 import NavDetalhesMobile from "./NavDetalhesMobile";
+import LoginModal from "../Auth/LoginModal";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -24,6 +25,8 @@ function NavMobile({ numCart }: Props) {
   const [busca, setBusca] = useState("");
   const [fazerBusca, setFazerBusca] = useState(false);
   const [storeName, setStoreName] = useState("PC Shop");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [customer, setCustomer] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,8 +35,31 @@ function NavMobile({ numCart }: Props) {
       const config = JSON.parse(savedConfig);
       setStoreName(config.storeName || 'PC Shop');
     }
+
+    // Verificar se há sessão ativa
+    const sessionId = localStorage.getItem('customerSession');
+    if (sessionId) {
+      verifySession(sessionId);
+    }
   }, []);
 
+  const verifySession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/customers?sessionId=${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCustomer(data.customer);
+      } else {
+        localStorage.removeItem('customerSession');
+      }
+    } catch (error) {
+      localStorage.removeItem('customerSession');
+    }
+  };
+
+  const handleLogin = (customerData: any, sessionId: string) => {
+    setCustomer(customerData);
+  };
   function changeOpen() {
     setOpen(!open);
   }
@@ -70,7 +96,10 @@ function NavMobile({ numCart }: Props) {
             <div className={styles.opcoesBusca} onClick={changeBusca}>
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </div>
-            <FontAwesomeIcon icon={faUser} />
+            <FontAwesomeIcon 
+              icon={faUser} 
+              onClick={() => setShowLoginModal(true)}
+            />
             <div>
               <Link href="/carrinho" passHref>
                 <div className={styles.carrinho} data-cy="cart">
@@ -100,6 +129,12 @@ function NavMobile({ numCart }: Props) {
         ) : null}
       </div>
       <NavDetalhesMobile />
+      
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
+      />
     </div>
   );
 }

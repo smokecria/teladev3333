@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 
 import Link from "next/link";
-import { useRouter } from "next/router";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import NavDetalhesDesktop from "./NavDetalhesDesktop";
+import LoginModal from "../Auth/LoginModal";
 
 import styles from "../../styles/Navbar.module.scss";
 
@@ -22,6 +23,9 @@ function NavDesktop({ numCart }: Props) {
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [storeName, setStoreName] = useState("PC Shop");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [customer, setCustomer] = useState<any>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -30,8 +34,37 @@ function NavDesktop({ numCart }: Props) {
       const config = JSON.parse(savedConfig);
       setStoreName(config.storeName || 'PC Shop');
     }
+
+    // Verificar se há sessão ativa
+    const sessionId = localStorage.getItem('customerSession');
+    if (sessionId) {
+      verifySession(sessionId);
+    }
   }, []);
 
+  const verifySession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/customers?sessionId=${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCustomer(data.customer);
+      } else {
+        localStorage.removeItem('customerSession');
+      }
+    } catch (error) {
+      localStorage.removeItem('customerSession');
+    }
+  };
+
+  const handleLogin = (customerData: any, sessionId: string) => {
+    setCustomer(customerData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('customerSession');
+    setCustomer(null);
+    setShowUserMenu(false);
+  };
   function changeOpen() {
     setOpen(!open);
   }
@@ -70,13 +103,36 @@ function NavDesktop({ numCart }: Props) {
           </Link>
         </div>
         <div className={styles.containerLogin}>
-          <FontAwesomeIcon icon={faUser} />
-          <div>
-            <p>Olá, seja bem-vindo</p>
-            <Link href={"/"} passHref>
-              <p>Entrar</p>
-            </Link>
-          </div>
+          {customer ? (
+            <div className={styles.userMenu}>
+              <div 
+                className={styles.userInfo}
+                onClick={() => setShowUserMenu(!showUserMenu)}
+              >
+                <FontAwesomeIcon icon={faUser} />
+                <div>
+                  <p>Olá, {customer.name.split(' ')[0]}</p>
+                  <p>Minha Conta</p>
+                </div>
+              </div>
+              {showUserMenu && (
+                <div className={styles.userDropdown}>
+                  <button onClick={() => setShowUserMenu(false)}>Meus Pedidos</button>
+                  <button onClick={() => setShowUserMenu(false)}>Meus Dados</button>
+                  <button onClick={() => setShowUserMenu(false)}>Cartões Salvos</button>
+                  <button onClick={handleLogout}>Sair</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div onClick={() => setShowLoginModal(true)}>
+              <FontAwesomeIcon icon={faUser} />
+              <div>
+                <p>Olá, seja bem-vindo</p>
+                <p>Entrar</p>
+              </div>
+            </div>
+          )}
         </div>
         <div className={styles.carrinho}>
           <Link href="/carrinho" passHref>
@@ -127,6 +183,12 @@ function NavDesktop({ numCart }: Props) {
         </ul>
       </nav>
       <NavDetalhesDesktop />
+      
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
+      />
     </div>
   );
 }

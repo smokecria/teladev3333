@@ -1,0 +1,193 @@
+@use "colors";
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid colors.$border-primary;
+
+  h2 {
+    margin: 0;
+    color: colors.$text-primary;
+  }
+
+  .closeBtn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: colors.$text-primary;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: colors.$background-secondary;
+      border-radius: 50%;
+    }
+  }
+}
+
+.modalBody {
+  padding: 1.5rem;
+}
+
+.authTabs {
+  display: flex;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid colors.$border-primary;
+
+  button {
+    flex: 1;
+    padding: 1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: colors.$text-primary;
+
+    &.active {
+      border-bottom-color: colors.$background-primary;
+      color: colors.$background-primary;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+.authForm {
+  .formGroup {
+    margin-bottom: 1.5rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: colors.$text-primary;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid colors.$border-primary;
+      border-radius: 4px;
+      font-size: 1rem;
+
+      &:focus {
+        outline: none;
+        border-color: colors.$background-primary;
+      }
+    }
+  }
+
+  .error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .submitBtn {
+    width: 100%;
+    padding: 1rem;
+    background-color: colors.$background-primary;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: colors.$text-terceary;
+    }
+
+    &:disabled {
+      background-color: colors.$border-primary;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: colors.$text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.userMenu {
+  position: relative;
+  display: inline-block;
+}
+
+.userDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid colors.$border-primary;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  z-index: 1000;
+
+  button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: colors.$text-primary;
+
+    &:hover {
+      background-color: colors.$background-secondary;
+    }
+
+    &:first-child {
+      border-radius: 4px 4px 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 4px 4px;
+      color: colors.$text-terceary;
+    }
+  }
+}

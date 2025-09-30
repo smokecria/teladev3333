@@ -150,6 +150,62 @@ export async function ensureTablesExist() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Tabela de clientes
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        cpf VARCHAR(14) UNIQUE,
+        phone VARCHAR(20),
+        birth_date DATE,
+        address JSON,
+        is_active BOOLEAN DEFAULT TRUE,
+        email_verified BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_email (email),
+        INDEX idx_cpf (cpf),
+        INDEX idx_is_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela de cartões salvos dos clientes
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS customer_cards (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        customer_id INT NOT NULL,
+        card_name VARCHAR(255) NOT NULL,
+        card_number_masked VARCHAR(19) NOT NULL,
+        card_brand VARCHAR(50),
+        expiry_month INT NOT NULL,
+        expiry_year INT NOT NULL,
+        is_default BOOLEAN DEFAULT FALSE,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        INDEX idx_customer_id (customer_id),
+        INDEX idx_is_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela de sessões de clientes
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS customer_sessions (
+        id VARCHAR(36) PRIMARY KEY,
+        customer_id INT NOT NULL,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_customer_id (customer_id),
+        INDEX idx_expires_at (expires_at),
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Tabela de logs do sistema
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS system_logs (
@@ -213,11 +269,31 @@ export async function migrateProductsFromList() {
     // Tentar importar produtos do arquivo listaItems
     let itemsList: any[] = [];
     try {
-      // Importar dinamicamente o arquivo listaItems
-      const listaItemsPath = require.resolve('../listaItems/index.tsx');
-      delete require.cache[listaItemsPath]; // Limpar cache
+      // Tentar diferentes caminhos para o arquivo listaItems
+      const possiblePaths = [
+        '../listaItems/index.tsx',
+        './listaItems/index.tsx',
+        '../../listaItems/index.tsx',
+        '../../../listaItems/index.tsx'
+      ];
       
-      const listaItemsModule = require('../listaItems/index.tsx');
+      let listaItemsModule = null;
+      
+      for (const path of possiblePaths) {
+        try {
+          const resolvedPath = require.resolve(path);
+          delete require.cache[resolvedPath];
+          listaItemsModule = require(path);
+          console.log(`📦 Arquivo listaItems encontrado em: ${path}`);
+          break;
+        } catch (e) {
+          // Continuar tentando outros caminhos
+        }
+      }
+      
+      if (!listaItemsModule) {
+        throw new Error('Arquivo listaItems não encontrado em nenhum caminho');
+      }
       
       // Verificar diferentes formas de export
       if (listaItemsModule.default && Array.isArray(listaItemsModule.default)) {
@@ -226,8 +302,22 @@ export async function migrateProductsFromList() {
         itemsList = listaItemsModule.listaItems;
       } else if (Array.isArray(listaItemsModule)) {
         itemsList = listaItemsModule;
+      } else if (listaItemsModule.items && Array.isArray(listaItemsModule.items)) {
+        itemsList = listaItemsModule.items;
       } else {
-        throw new Error('Formato de export não reconhecido');
+        // Tentar encontrar qualquer array no módulo
+        const keys = Object.keys(listaItemsModule);
+        for (const key of keys) {
+          if (Array.isArray(listaItemsModule[key])) {
+            itemsList = listaItemsModule[key];
+            console.log(`📦 Array de produtos encontrado na propriedade: ${key}`);
+            break;
+          }
+        }
+        
+        if (itemsList.length === 0) {
+          throw new Error('Nenhum array de produtos encontrado no arquivo');
+        }
       }
       
       if (!Array.isArray(itemsList) || itemsList.length === 0) {
@@ -236,7 +326,7 @@ export async function migrateProductsFromList() {
       
       console.log(`📦 Encontrados ${itemsList.length} produtos no listaItems`);
     } catch (error) {
-      console.log('❌ Falha ao carregar listaItems. Criando produtos de exemplo...');
+      console.log(`❌ Falha ao carregar listaItems: ${error}. Criando produtos de exemplo...`);
       itemsList = createSampleProducts();
     }
     
@@ -256,7 +346,7 @@ export async function migrateProductsFromList() {
           item.modelo || '',
           item.categoria || 'geral',
           item.fabricante || '',
-          item.pPrazo || item.price || 0,
+          parseFloat(item.pPrazo || item.price || 0),
           item.img || '/images/sample.jpg',
           item.img2 || '/images/sample.jpg',
           item.garantia || '12 meses',
