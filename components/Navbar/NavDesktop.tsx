@@ -65,6 +65,17 @@ function NavDesktop({ numCart }: Props) {
     setCustomer(null);
     setShowUserMenu(false);
   };
+
+  const handleMyOrders = () => {
+    // Implementar página de pedidos do cliente
+    router.push('/meus-pedidos');
+  };
+
+  const handleMyAccount = () => {
+    // Implementar página de conta do cliente
+    router.push('/minha-conta');
+  };
+
   function changeOpen() {
     setOpen(!open);
   }

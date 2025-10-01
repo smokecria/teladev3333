@@ -276,48 +276,61 @@ export async function migrateProductsFromList() {
       const jsonPath = path.join(process.cwd(), 'listaItems', 'products.json');
       
       if (fs.existsSync(jsonPath)) {
+    // Carregar produtos - SOLUÇÃO DEFINITIVA
+    let itemsList: any[] = [];
+    
+    // 1. Tentar carregar do JSON primeiro (mais confiável)
+    const jsonPath = path.join(process.cwd(), 'listaItems', 'products.json');
+    if (fs.existsSync(jsonPath)) {
+      try {
         const jsonData = fs.readFileSync(jsonPath, 'utf8');
         itemsList = JSON.parse(jsonData);
-        console.log(`📦 Carregados ${itemsList.length} produtos do arquivo JSON`);
-      } else {
-        console.log('📦 Arquivo JSON não encontrado, criando produtos de exemplo...');
-        itemsList = createSampleProducts();
+        console.log(`📦 Carregados ${itemsList.length} produtos do JSON`);
+      } catch (error) {
+        console.log('❌ Erro ao ler JSON, tentando TypeScript...');
       }
-    } catch (error) {
-      console.log(`❌ Erro ao carregar produtos: ${error}. Usando produtos de exemplo...`);
-      itemsList = createSampleProducts();
     }
     
-    console.log(`🔄 Migrando ${itemsList.length} produtos para o banco de dados...`);
-    
-    let successCount = 0;
-    for (const item of itemsList) {
-      try {
-        await connection.execute(`
-          INSERT INTO products (
-            id, name, modelo, categoria, fabricante, price, img, img2, 
-            garantia, specs, promo, pathName, tags, destaque
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          item.id || generateId(),
-          item.name || 'Produto sem nome',
-          item.modelo || '',
-          item.categoria || 'geral',
-          item.fabricante || '',
-          parseFloat(item.pPrazo || item.price || 0),
-          item.img || '/images/sample.jpg',
-          item.img2 || '/images/sample.jpg',
-          item.garantia || '12 meses',
-          JSON.stringify(item.specs || []),
-          Boolean(item.promo),
-          item.pathName || generatePathName(item.name || 'produto'),
-          JSON.stringify(item.tags || []),
-          Boolean(item.destaque)
-        ]);
-        successCount++;
-      } catch (itemError: any) {
-        console.warn(`⚠️ Erro ao migrar produto ${item.name}:`, itemError?.message || 'Erro desconhecido');
+    // 2. Se JSON falhou, tentar TypeScript
+    if (itemsList.length === 0) {
+      const tsPath = path.join(process.cwd(), 'listaItems', 'index.tsx');
+      if (fs.existsSync(tsPath)) {
+        try {
+          const fileContent = fs.readFileSync(tsPath, 'utf8');
+          
+          // Extrair array usando regex mais robusta
+          const exportMatch = fileContent.match(/export\s+default\s+(\[[\s\S]*?\]);/);
+          const constMatch = fileContent.match(/const\s+\w+\s*=\s*(\[[\s\S]*?\]);/);
+          
+          let arrayString = '';
+          if (exportMatch) {
+            arrayString = exportMatch[1];
+          } else if (constMatch) {
+            arrayString = constMatch[1];
+          }
+          
+          if (arrayString) {
+            // Limpar o código TypeScript para JSON válido
+            arrayString = arrayString
+              .replace(/\/\*[\s\S]*?\*\//g, '') // Remove comentários
+              .replace(/\/\/.*$/gm, '') // Remove comentários de linha
+              .replace(/,(\s*[}\]])/g, '$1') // Remove vírgulas extras
+              .replace(/(\w+):/g, '"$1":') // Adiciona aspas nas chaves
+              .replace(/'/g, '"'); // Troca aspas simples por duplas
+            
+            itemsList = JSON.parse(arrayString);
+            console.log(`📦 Carregados ${itemsList.length} produtos do TypeScript`);
+          }
+        } catch (error) {
+          console.log('❌ Erro ao processar TypeScript, usando produtos padrão...');
+        }
       }
+    }
+    
+    // 3. Se tudo falhou, usar produtos padrão
+    if (itemsList.length === 0) {
+      console.log('📦 Usando produtos de exemplo...');
+      itemsList = createSampleProducts();
     }
 
     console.log(`✅ ${successCount} produtos migrados com sucesso para o banco de dados`);

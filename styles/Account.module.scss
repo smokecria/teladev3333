@@ -1,0 +1,132 @@
+@use "colors";
+
+.container {
+  min-height: 100vh;
+  background-color: colors.$background-secondary;
+  padding: 2rem;
+  font-family: "Montserrat", sans-serif;
+}
+
+.accountHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+
+  h1 {
+    color: colors.$text-primary;
+    margin: 0;
+  }
+}
+
+.logoutBtn {
+  padding: 0.5rem 1rem;
+  background-color: colors.$text-terceary;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid colors.$border-primary;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+
+  button {
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: colors.$text-primary;
+
+    &.active {
+      border-bottom-color: colors.$background-primary;
+      color: colors.$background-primary;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+.content {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.profileSection {
+  h2 {
+    margin-bottom: 2rem;
+    color: colors.$text-primary;
+  }
+}
+
+.profileInfo {
+  background-color: colors.$background-secondary;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+
+  p {
+    margin: 1rem 0;
+    color: colors.$text-primary;
+  }
+}
+
+.editBtn {
+  padding: 0.75rem 1.5rem;
+  background-color: colors.$background-primary;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: colors.$text-terceary;
+  }
+}
+
+.cardsSection, .ordersSection {
+  h2 {
+    margin-bottom: 2rem;
+    color: colors.$text-primary;
+  }
+
+  p {
+    color: colors.$text-primary;
+    text-align: center;
+    padding: 2rem;
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+
+  p {
+    font-size: 1.2rem;
+    color: colors.$text-primary;
+  }
+}
